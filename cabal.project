@@ -1,0 +1,5 @@
+packages: .
+
+
+package attoparsec-frames
+  flags: +use-doc-tests

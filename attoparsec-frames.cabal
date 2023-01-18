@@ -1,0 +1,69 @@
+cabal-version:      3.0
+name:               attoparsec-frames
+version:            0.1.0.0
+synopsis:           Message queues as a reactive-values
+description:
+  Models message queues as [Reactive Values](https://hackage.haskell.org/package/keera-hails-reactivevalues-0.8.0/docs/Data-ReactiveValue.html)
+
+  - Outbound Queues are writeonly RVs
+  - Inbound Queues are readonly RVs
+
+  When receiving, the readonly RV has the following behaviour
+
+  the each receiving thread has a consumer thread dedicated to processing
+  inbound messages
+
+  on message receipt, the message envelope is placed in an IORef and
+  reactiveValueCanRead is invoked
+
+
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Tim Emiola
+maintainer:         adetokunbo@emio.la
+category:           Web
+homepage:           https://github.com/adetokunbo/attoparsec-frames#readme
+bug-reports:
+  https://github.com/adetokunbo/attoparsec-frames/issues
+
+build-type:         Simple
+extra-source-files:
+  ChangeLog.md
+
+source-repository head
+  type:     git
+  location: https://github.com/adetokunbo/attoparsec-frames.git
+
+library
+  exposed-modules:  Test.Hspec.Benri
+  hs-source-dirs:   src
+  build-depends:
+    , base                        >=4.10 && <5
+    , hspec                       >=2.7.0 && <2.12.0
+    , keera-hails-reactivevalues  >=0.6 && <0.9
+
+  default-language: Haskell2010
+  ghc-options:      -Wall -Wincomplete-uni-patterns -Wpartial-fields -fwarn-tabs
+
+
+Flag build-the-readme
+  description: Allow the readme to build
+  default:     False
+
+
+test-suite readme
+  if os(windows) || !flag(build-the-readme)
+    buildable: False
+  else
+    buildable: True
+
+  build-tool-depends: markdown-unlit:markdown-unlit
+  type:             exitcode-stdio-1.0
+  ghc-options:        -pgmL markdown-unlit -threaded -rtsopts -with-rtsopts=-N -Wall -Wincomplete-patterns -Wpartial-fields
+  main-is:            README.lhs
+  default-language:   Haskell2010
+  build-depends:
+    , base
+    , attoparsec-frames
+    , hspec
