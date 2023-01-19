@@ -37,7 +37,7 @@ spec = describe "ToyFrame" $ do
   context "parser" $
     it "should roundtrip with 'builder'" prop_trip
 
-  mapM_ receivesWithChunksOf [1024, 2048, 4096, 8192]
+  mapM_ receivesWithChunksOf [16, 256, 1024, 2048, 4096, 8192]
 
   context "when input ends, receivesFrames" $ do
     let basic = mkFrames parser (const $ pure ()) $ const $ pure BS.empty
@@ -51,7 +51,7 @@ spec = describe "ToyFrame" $ do
         receiveFrames other `shouldThrow` (\x -> x == Underflow)
 
 
-receivesWithChunksOf :: Int -> SpecWith ()
+receivesWithChunksOf :: Word32 -> SpecWith ()
 receivesWithChunksOf chunkSize' = do
   context ("when chunk size is " ++ show chunkSize') $
     context "receiveFrames" $
@@ -92,28 +92,23 @@ parse :: BS.ByteString -> Maybe FullFrame
 parse = A.maybeResult . A.parse parser
 
 
-prop_receiveFrames :: Int -> Property
+prop_receiveFrames :: Word32 -> Property
 prop_receiveFrames chunkSize' = monadicIO $
   forAllM (listOf1 genFullFrame) $
     \ps -> run $ checkReceiveFrames chunkSize' ps
 
 
-checkReceiveFrames :: Int -> [FullFrame] -> IO Bool
+checkReceiveFrames :: Word32 -> [FullFrame] -> IO Bool
 checkReceiveFrames chunkSize' wanted = do
-  src <- chunksFor chunkSize' wanted
+  chunkStore <- newIORef Nothing
   dst <- newIORef []
   let updateDst x = modifyIORef' dst ((:) x)
-      frames = mkFrames parser updateDst $ const (nextFrom src)
+      mkChunks n = mconcat $ map (chunksOfN n . asBytes) wanted
+      src = nextFrom' mkChunks chunkStore
+      frames = setChunkSize chunkSize' $ mkFrames parser updateDst src
   receiveFrames frames `catch` (\(_e :: BrokenFrame) -> pure ())
   got <- readIORef dst
   pure $ got == reverse wanted
-
-
-chunksFor :: Int -> [FullFrame] -> IO (IORef [BS.ByteString])
-chunksFor size wantedFrames = do
-  let asChunks = chunksOfN size . asBytes
-      chunks = mconcat $ map asChunks wantedFrames
-  newIORef chunks
 
 
 chunksOfN :: Int -> BS.ByteString -> [BS.ByteString]
@@ -124,19 +119,14 @@ chunksOfN x b =
    in unfoldr go b
 
 
-nextFrom :: IORef [BS.ByteString] -> IO BS.ByteString
-nextFrom ref = do
-  readIORef ref >>= \case
-    [] -> pure BS.empty
-    (x : xs) -> do
-      writeIORef ref xs
+nextFrom' ::
+  (Int -> [BS.ByteString]) -> IORef (Maybe [BS.ByteString]) -> Word32 -> IO BS.ByteString
+nextFrom' initChunks chunkStore chunkSize' = do
+  readIORef chunkStore >>= \case
+    Nothing -> do
+      writeIORef chunkStore $ Just $ initChunks $ fromIntegral chunkSize'
+      nextFrom' initChunks chunkStore chunkSize'
+    Just [] -> pure BS.empty
+    Just (x : xs) -> do
+      writeIORef chunkStore $ Just xs
       pure x
-
--- _nextFrom' :: (Int -> IO (IORef [BS.ByteString])) -> Word32 -> IO BS.ByteString
--- _nextFrom' mkRef chunkSize' = do
---   ref <- mkRef $ fromIntegral chunkSize'
---   readIORef ref >>= \case
---     [] -> pure BS.empty
---     (x : xs) -> do
---       writeIORef ref xs
---       pure x
