@@ -37,8 +37,17 @@ spec = describe "ToyFrame" $ do
   context "parser" $
     it "should roundtrip with 'builder'" prop_trip
 
-  context "receiveFrames" $
-    it "should parse streams of frames correctly" prop_receiveFrames
+  withChunkSize 1024
+  withChunkSize 2048
+  withChunkSize 4096
+  withChunkSize 8192
+
+
+withChunkSize :: Int -> SpecWith ()
+withChunkSize chunkSize' = do
+  context ("when chunk size is " ++ show chunkSize') $
+    context "receiveFrames" $
+      it "should parse into frames" $ prop_receiveFrames chunkSize'
 
 
 prop_trip :: Property
@@ -75,10 +84,10 @@ parse :: BS.ByteString -> Maybe FullFrame
 parse = A.maybeResult . A.parse parser
 
 
-prop_receiveFrames :: Property
-prop_receiveFrames = monadicIO $
+prop_receiveFrames :: Int -> Property
+prop_receiveFrames chunkSize' = monadicIO $
   forAllM (listOf1 genFullFrame) $
-    \ps -> run $ checkReceiveFrames 1024 ps
+    \ps -> run $ checkReceiveFrames chunkSize' ps
 
 
 checkReceiveFrames :: Int -> [FullFrame] -> IO Bool
