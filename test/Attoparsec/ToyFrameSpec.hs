@@ -131,3 +131,12 @@ nextFrom ref = do
     (x : xs) -> do
       writeIORef ref xs
       pure x
+
+-- _nextFrom' :: (Int -> IO (IORef [BS.ByteString])) -> Word32 -> IO BS.ByteString
+-- _nextFrom' mkRef chunkSize' = do
+--   ref <- mkRef $ fromIntegral chunkSize'
+--   readIORef ref >>= \case
+--     [] -> pure BS.empty
+--     (x : xs) -> do
+--       writeIORef ref xs
+--       pure x
