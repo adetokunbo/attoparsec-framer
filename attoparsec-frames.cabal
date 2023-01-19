@@ -36,7 +36,7 @@ test-suite unittests
   main-is:        Spec.hs
   other-modules:  Attoparsec.ToyFrame
                   Attoparsec.ToyFrameSpec
-  hs-source-dirs: test
+  hs-source-dirs: test, toy
   build-depends:
     , async
     , attoparsec
