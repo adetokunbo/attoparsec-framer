@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD3
 module Attoparsec.ToyFrameSpec (spec) where
 
 import Attoparsec.ToyFrame
-import Control.Exception (catch)
+import Control.Exception (ArithException (..), catch, throwIO)
 import qualified Data.Attoparsec.ByteString as A
 import Data.Attoparsec.Frames
 import qualified Data.ByteString as BS
@@ -37,14 +37,22 @@ spec = describe "ToyFrame" $ do
   context "parser" $
     it "should roundtrip with 'builder'" prop_trip
 
-  withChunkSize 1024
-  withChunkSize 2048
-  withChunkSize 4096
-  withChunkSize 8192
+  mapM_ receivesWithChunksOf [1024, 2048, 4096, 8192]
+
+  context "when input ends, receivesFrames" $ do
+    let basic = mkFrames parser (const $ pure ()) $ const $ pure BS.empty
+        other = setThrowParseFail (\_ -> throwIO Underflow) basic
+
+    it "should use the default errorhandler" $ do
+      receiveFrames basic `shouldThrow` (\(BrokenFrame _) -> True)
+
+    context "and when an error handler is installed" $ do
+      it "should use the installed errorhandler" $ do
+        receiveFrames other `shouldThrow` (\x -> x == Underflow)
 
 
-withChunkSize :: Int -> SpecWith ()
-withChunkSize chunkSize' = do
+receivesWithChunksOf :: Int -> SpecWith ()
+receivesWithChunksOf chunkSize' = do
   context ("when chunk size is " ++ show chunkSize') $
     context "receiveFrames" $
       it "should parse into frames" $ prop_receiveFrames chunkSize'
@@ -92,12 +100,12 @@ prop_receiveFrames chunkSize' = monadicIO $
 
 checkReceiveFrames :: Int -> [FullFrame] -> IO Bool
 checkReceiveFrames chunkSize' wanted = do
-  chunkSource <- chunksFor chunkSize' wanted
-  outStore <- newIORef []
-  let adder = addFrame outStore
-      frames = mkFrames parser adder $ const (nextFrom chunkSource)
+  src <- chunksFor chunkSize' wanted
+  dst <- newIORef []
+  let updateDst x = modifyIORef' dst ((:) x)
+      frames = mkFrames parser updateDst $ const (nextFrom src)
   receiveFrames frames `catch` (\(_e :: BrokenFrame) -> pure ())
-  got <- readIORef outStore
+  got <- readIORef dst
   pure $ got == reverse wanted
 
 
@@ -123,7 +131,3 @@ nextFrom ref = do
     (x : xs) -> do
       writeIORef ref xs
       pure x
-
-
-addFrame :: IORef [a] -> a -> IO ()
-addFrame ref next = modifyIORef' ref ((:) next)
