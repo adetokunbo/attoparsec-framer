@@ -30,16 +30,20 @@ library
   ghc-options:
     -Wall -Wincomplete-uni-patterns -Wpartial-fields -fwarn-tabs
 
-test-suite integration-test
+
+test-suite unittests
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
   other-modules:  Attoparsec.ToyFrame
+                  Attoparsec.ToyFrameSpec
   hs-source-dirs: test
   build-depends:
     , async
     , attoparsec
     , attoparsec-binary
+    , attoparsec-frames
     , base
     , bytestring
     , text
     , hspec
+    , QuickCheck
