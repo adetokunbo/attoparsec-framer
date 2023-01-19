@@ -21,7 +21,6 @@ import Data.Attoparsec.Frames (FrameSize (..), parseSizedFrame)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Builder
-import Data.Text (Text)
 import Data.Word (Word32)
 
 

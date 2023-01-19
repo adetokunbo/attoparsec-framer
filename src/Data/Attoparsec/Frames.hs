@@ -14,14 +14,14 @@ module Data.Attoparsec.Frames (
   chunkSize,
   setChunkSize,
   setThrowParseFail,
+  BrokenFrame (..),
 
   -- * Frame size
   FrameSize (..),
   parseSizedFrame,
 ) where
 
-import Control.Exception (throwIO)
-import Control.Monad (when)
+import Control.Exception (Exception, throwIO)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Data.Attoparsec.ByteString as A
 import Data.ByteString (ByteString)
@@ -29,7 +29,7 @@ import qualified Data.ByteString as BS
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Word (Word16, Word32, Word64, Word8)
+import Data.Word (Word32)
 
 
 class FrameSize a where
@@ -141,7 +141,7 @@ receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr = do
       onParse (A.Fail _ ctxs reason) = do
         let errMessage = parsingFailed ctxs reason
         onErr errMessage
-        liftIO $ throwIO $ userError reason
+        liftIO $ throwIO $ BrokenFrame reason
       onParse (A.Done i r) = do
         handleFrame r
         pure (if BS.null i then Nothing else Just i)
@@ -154,3 +154,10 @@ parsingFailed context reason =
   let contexts = Text.intercalate "-" (Text.pack <$> context)
       cause = if null reason then Text.empty else ":" <> Text.pack reason
    in "bad parse:" <> contexts <> cause
+
+
+data BrokenFrame = BrokenFrame String
+  deriving (Eq, Show)
+
+
+instance Exception BrokenFrame
