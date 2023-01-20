@@ -19,6 +19,7 @@ source-repository head
 
 library
   exposed-modules:  Data.Attoparsec.Frames
+                    Data.Attoparsec.Frames.Testing
   hs-source-dirs:   src
   build-depends:
     , attoparsec  >=0.14.4   && <0.15
