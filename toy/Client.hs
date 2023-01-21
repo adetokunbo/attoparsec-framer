@@ -30,7 +30,7 @@ import Data.IORef (
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Network.Run.TCP (runTCPClient)
-import Network.Socket (Socket, close)
+import Network.Socket (Socket)
 import Network.Socket.ByteString (recv, sendAll)
 
 
@@ -57,17 +57,22 @@ onFullFrame maxCount counter s (_, Payload b) = do
   let updated = (count + 1, size + BS.length b)
   writeIORef counter updated
   putStrLn $ "Count is now " ++ show updated
-  if count + 1 >= maxCount then close s else pure ()
+  if count + 1 >= maxCount then sendBye s else pure ()
 
 
 onFailedParse :: Socket -> Text -> IO ()
 onFailedParse s cause = do
   -- if does not parse as a full frame immediately terminate the connection
   Text.putStrLn $ "parse error ended a connection to a toy server: " <> cause
+  sendBye s
+
+
+sendBye :: Socket -> IO ()
+sendBye s = sendAll s $ asBytes $ Header 0 0
 
 
 onClosed :: IO ()
-onClosed = Text.putStrLn "the toy server closed it's connection"
+onClosed = Text.putStrLn "finished at the server too!"
 
 
 asBytes :: Header -> BS.ByteString
