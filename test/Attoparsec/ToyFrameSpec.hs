@@ -31,14 +31,19 @@ spec = describe "ToyFrame" $ do
 
   context "when input ends, receivesFrames" $ do
     let basic = mkFrames parser (const $ pure ()) $ const $ pure BS.empty
-        other = setThrowParseFail (\_ -> throwIO Underflow) basic
+        otherError = setOnClosed (throwIO Underflow) basic
+        noError = setOnClosed (pure ()) basic
 
-    it "should use the default errorhandler" $ do
-      receiveFrames basic `shouldThrow` (\(BrokenFrame _) -> True)
+    it "should use the default close handler" $ do
+      receiveFrames basic `shouldThrow` (\NoMoreInput -> True)
 
-    context "and when an error handler is installed" $ do
-      it "should use the installed errorhandler" $ do
-        receiveFrames other `shouldThrow` (\x -> x == Underflow)
+    context "when a throwing closed handler is installed" $ do
+      it "should throw" $ do
+        receiveFrames otherError `shouldThrow` (\x -> x == Underflow)
+
+    context "when a closed handler does not throw an exception" $ do
+      it "should finish without throwing" $ do
+        receiveFrames noError `shouldReturn` ()
 
 
 receivesWithChunksOf :: Word32 -> SpecWith ()

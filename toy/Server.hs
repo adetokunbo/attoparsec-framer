@@ -5,7 +5,7 @@
 module Main (main) where
 
 import Attoparsec.ToyFrame (Header (..), asBytes, genAscFullFrames, parseHeader)
-import Data.Attoparsec.Frames (Frames, mkFrames, receiveFrames, setThrowParseFail)
+import Data.Attoparsec.Frames (Frames, mkFrames, receiveFrames, setOnBadParse)
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Network.Run.TCP (runTCPServer)
@@ -19,7 +19,7 @@ main = runTCPServer Nothing "3000" $ receiveFrames . fromSocket
 
 fromSocket :: Socket -> Frames IO Header
 fromSocket s =
-  setThrowParseFail (onFailedParse s) $
+  setOnBadParse (onFailedParse s) $
     mkFrames parseHeader (onHeader s) (recv s . fromIntegral)
 
 

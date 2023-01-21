@@ -13,8 +13,10 @@ module Data.Attoparsec.Frames (
   receiveFrames,
   chunkSize,
   setChunkSize,
-  setThrowParseFail,
+  setOnBadParse,
+  setOnClosed,
   BrokenFrame (..),
+  NoMoreInput (..),
 
   -- * Frame size
   FrameSize (..),
@@ -45,15 +47,16 @@ parseSizedFrame parseHead mkParseBody = do
 
 data Frames m a = Frames
   { framerChunkSize :: !Word32
-  , framerThrowParseFail :: !(Text -> m ())
+  , framerOnBadParse :: !(Text -> m ())
   , framerFetchBytes :: !(Word32 -> m ByteString)
   , framerOnFrame :: !(a -> m ())
   , framerParser :: !(A.Parser a)
+  , framerOnClosed :: !(m ())
   }
 
 
 mkFrames ::
-  Applicative m =>
+  MonadIO m =>
   A.Parser a ->
   (a -> m ()) ->
   (Word32 -> m ByteString) ->
@@ -61,10 +64,11 @@ mkFrames ::
 mkFrames parser onFrame fetchBytes =
   Frames
     { framerChunkSize = 2048
-    , framerThrowParseFail = \_err -> pure ()
+    , framerOnBadParse = \_err -> pure ()
     , framerFetchBytes = fetchBytes
     , framerOnFrame = onFrame
     , framerParser = parser
+    , framerOnClosed = liftIO $ throwIO NoMoreInput
     }
 
 
@@ -75,12 +79,13 @@ receiveFrames ::
 receiveFrames f =
   let Frames
         { framerChunkSize = fetchSize
-        , framerThrowParseFail = onErr
+        , framerOnBadParse = onErr
         , framerFetchBytes = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
+        , framerOnClosed = onClosed
         } = f
-   in receiveFrames' fetchSize parser fetchBytes onFrame onErr
+   in receiveFrames' fetchSize parser fetchBytes onFrame onErr onClosed
 
 
 chunkSize :: Frames m a -> Word32
@@ -91,8 +96,12 @@ setChunkSize :: Word32 -> Frames m a -> Frames m a
 setChunkSize size f = f {framerChunkSize = size}
 
 
-setThrowParseFail :: (Text -> m ()) -> Frames m a -> Frames m a
-setThrowParseFail onErr f = f {framerThrowParseFail = onErr}
+setOnBadParse :: (Text -> m ()) -> Frames m a -> Frames m a
+setOnBadParse onErr f = f {framerOnBadParse = onErr}
+
+
+setOnClosed :: (m ()) -> Frames m a -> Frames m a
+setOnClosed onClose f = f {framerOnClosed = onClose}
 
 
 receiveFrames' ::
@@ -102,11 +111,12 @@ receiveFrames' ::
   (Word32 -> m ByteString) ->
   (a -> m ()) ->
   (Text -> m ()) ->
+  m () ->
   m ()
-receiveFrames' fetchSize parser fetchBytes handleFrame onErr = do
+receiveFrames' fetchSize parser fetchBytes handleFrame onErr onClosed = do
   let loop x = do
-        next <- receiveFrame' x fetchSize parser fetchBytes handleFrame onErr
-        loop next
+        (next, closed) <- receiveFrame' x fetchSize parser fetchBytes handleFrame onErr onClosed
+        if not closed then loop next else pure ()
   loop Nothing
 
 
@@ -114,16 +124,17 @@ receiveFrame ::
   MonadIO m =>
   Maybe ByteString ->
   Frames m a ->
-  m (Maybe ByteString)
+  m ((Maybe ByteString), Bool)
 receiveFrame restMb f =
   let Frames
         { framerChunkSize = fetchSize
-        , framerThrowParseFail = onErr
+        , framerOnBadParse = onErr
         , framerFetchBytes = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
+        , framerOnClosed = onClose
         } = f
-   in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr
+   in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
 
 
 receiveFrame' ::
@@ -134,17 +145,25 @@ receiveFrame' ::
   (Word32 -> m ByteString) ->
   (a -> m ()) ->
   (Text -> m ()) ->
-  m (Maybe ByteString)
-receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr = do
+  m () ->
+  m ((Maybe ByteString), Bool)
+receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
   let pullChunk = fetchBytes fetchSize
       initial = fromMaybe BS.empty restMb
       onParse (A.Fail _ ctxs reason) = do
         let errMessage = parsingFailed ctxs reason
-        onErr errMessage
-        liftIO $ throwIO $ BrokenFrame reason
+        if reason == closedReason
+          then -- TODO: determine a way of detecting this condition that is
+          -- independent of the error text
+          do
+            onClose
+            pure (Nothing, True)
+          else do
+            onErr errMessage
+            liftIO $ throwIO $ BrokenFrame reason
       onParse (A.Done i r) = do
         handleFrame r
-        pure (if BS.null i then Nothing else Just i)
+        pure ((if BS.null i then Nothing else Just i), False)
       onParse (A.Partial continue) = pullChunk >>= onParse . continue
   A.parseWith pullChunk parser initial >>= onParse
 
@@ -161,3 +180,14 @@ data BrokenFrame = BrokenFrame String
 
 
 instance Exception BrokenFrame
+
+
+data NoMoreInput = NoMoreInput
+  deriving (Eq, Show)
+
+
+instance Exception NoMoreInput
+
+
+closedReason :: String
+closedReason = "not enough input"

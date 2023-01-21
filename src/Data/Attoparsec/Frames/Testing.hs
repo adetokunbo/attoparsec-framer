@@ -32,7 +32,8 @@ parsesFromFramesOk asBytes parser chunkSize' wanted = do
       mkChunks n = mconcat $ map (chunksOfN n . asBytes) wanted
       src = nextFrom' mkChunks chunkStore
       frames = setChunkSize chunkSize' $ mkFrames parser updateDst src
-  receiveFrames frames `catch` (\(_e :: BrokenFrame) -> pure ())
+  receiveFrames frames `catch` (\(_e :: NoMoreInput) -> pure ())
+
   got <- readIORef dst
   pure $ got == reverse wanted
 
