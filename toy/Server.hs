@@ -5,7 +5,7 @@
 module Main (main) where
 
 import Attoparsec.ToyFrame (Header (..), asBytes, genAscFullFrames, parseHeader)
-import Data.Attoparsec.Frames (Frames, mkFrames, receiveFrames, setOnBadParse)
+import Data.Attoparsec.Frames (Frames, mkFrames, receiveFrames, setOnBadParse, setOnClosed)
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Network.Run.TCP (runTCPServer)
@@ -14,13 +14,14 @@ import Network.Socket.ByteString (recv, sendAll)
 
 
 main :: IO ()
-main = runTCPServer Nothing "3000" $ receiveFrames . fromSocket
+main = runTCPServer Nothing "3927" $ receiveFrames . fromSocket
 
 
 fromSocket :: Socket -> Frames IO Header
 fromSocket s =
-  setOnBadParse (onFailedParse s) $
-    mkFrames parseHeader (onHeader s) (recv s . fromIntegral)
+  setOnClosed (onClosed s) $
+    setOnBadParse (onFailedParse s) $
+      mkFrames parseHeader (onHeader s) (recv s . fromIntegral)
 
 
 onHeader :: Socket -> Header -> IO ()
@@ -38,5 +39,11 @@ onHeader s Header {hIndex, hSize} = do
 onFailedParse :: Socket -> Text -> IO ()
 onFailedParse s cause = do
   -- if does not parse as a frame header immediately terminate the connection
-  Text.putStrLn $ "error ended a connection to a toy client: " <> cause
+  Text.putStrLn $ "parse error ended a connection from a toy client: " <> cause
+  gracefulClose s 5000
+
+
+onClosed :: Socket -> IO ()
+onClosed s = do
+  Text.putStrLn "a toy client closed a connection"
   gracefulClose s 5000
