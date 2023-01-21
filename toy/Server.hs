@@ -5,44 +5,54 @@
 module Main (main) where
 
 import Attoparsec.ToyFrame (Header (..), asBytes, genAscFullFrames, parseHeader)
-import Data.Attoparsec.Frames (Frames, mkFrames, receiveFrames, setOnBadParse, setOnClosed)
+import Data.Attoparsec.Frames (
+  Frames,
+  Progression (..),
+  mkFrames',
+  receiveFrames,
+  setOnBadParse,
+  setOnClosed,
+ )
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Network.Run.TCP (runTCPServer)
-import Network.Socket (Socket, gracefulClose)
+import Network.Socket (Socket)
 import Network.Socket.ByteString (recv, sendAll)
 
 
 main :: IO ()
-main = runTCPServer Nothing "3927" $ receiveFrames . fromSocket
+main = runTCPServer Nothing "3927" $ \s -> do
+  Text.putStrLn "a toy client connected"
+  receiveFrames $ fromSocket s
 
 
 fromSocket :: Socket -> Frames IO Header
 fromSocket s =
   setOnClosed onClosed $
-    setOnBadParse (onFailedParse s) $
-      mkFrames parseHeader (onHeader s) (recv s . fromIntegral)
+    setOnBadParse onFailedParse $
+      mkFrames' parseHeader (onHeader s) (recv s . fromIntegral)
 
 
-onHeader :: Socket -> Header -> IO ()
+onHeader :: Socket -> Header -> IO Progression
 onHeader s Header {hIndex, hSize} = do
   if (hIndex == 0)
-    then -- if hIndex is 0 close the socket
-      gracefulClose s 5000
+    then -- hIndex is 0; the client means 'bye', stop waiting for input
+    do
+      Text.putStrLn "a toy client sent bye"
+      pure Stop
     else do
-      -- when hIndex is 0 > start from 1, send a frame with a body whose max size is hSize
+      -- hIndex > 0; starting from 1, send a frame with a body whose max size is hSize
       -- generate a list of frames counting up to the index provided in the header
       toSend <- genAscFullFrames hIndex hSize
       mapM_ (sendAll s) $ map asBytes toSend
+      pure Continue
 
 
-onFailedParse :: Socket -> Text -> IO ()
-onFailedParse s cause = do
+onFailedParse :: Text -> IO ()
+onFailedParse cause = do
   -- if does not parse as a frame header immediately terminate the connection
   Text.putStrLn $ "parse error ended a connection from a toy client: " <> cause
-  gracefulClose s 5000
 
 
 onClosed :: IO ()
-onClosed = do
-  Text.putStrLn "a toy client closed a connection"
+onClosed = Text.putStrLn "a toy client closed a connection"
