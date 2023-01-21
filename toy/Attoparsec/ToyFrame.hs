@@ -13,6 +13,7 @@ module Attoparsec.ToyFrame (
   -- * functions
   asBytes,
   builder,
+  buildFrameHeader,
   parse,
   parser,
   parseHeader,
