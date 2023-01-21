@@ -19,7 +19,7 @@ main = runTCPServer Nothing "3927" $ receiveFrames . fromSocket
 
 fromSocket :: Socket -> Frames IO Header
 fromSocket s =
-  setOnClosed (onClosed s) $
+  setOnClosed onClosed $
     setOnBadParse (onFailedParse s) $
       mkFrames parseHeader (onHeader s) (recv s . fromIntegral)
 
@@ -43,7 +43,6 @@ onFailedParse s cause = do
   gracefulClose s 5000
 
 
-onClosed :: Socket -> IO ()
-onClosed s = do
+onClosed :: IO ()
+onClosed = do
   Text.putStrLn "a toy client closed a connection"
-  gracefulClose s 5000
