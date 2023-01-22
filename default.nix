@@ -31,4 +31,10 @@ in pkgs.haskell-nix.cabalProject {
 
   # Specify the hackage index state
   index-state = "2022-11-23T00:00:00Z";
+
+  modules = [
+    { enableProfiling = true;
+      enableLibraryProfiling = true;
+    }
+  ];
 }
