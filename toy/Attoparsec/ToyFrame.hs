@@ -23,6 +23,7 @@ module Attoparsec.ToyFrame (
   genAscFullFrames,
   genHeader,
   genFullFrame,
+  someTriggers,
 ) where
 
 import qualified Data.Attoparsec.Binary as A
@@ -105,6 +106,14 @@ genPayload size = fmap (Payload . BS.pack) $ vectorOf (fromIntegral size) genPri
 
 genHeader :: Gen Header
 genHeader = Header <$> arbitrary <*> chooseEnum (2, 32)
+
+
+genClientTrigger :: Gen Header
+genClientTrigger = Header <$> (chooseEnum (32, 4096)) <*> (chooseEnum (32, 1024))
+
+
+someTriggers :: Int -> IO [Header]
+someTriggers count = generate $ vectorOf count $ genClientTrigger
 
 
 genFullFrame :: Gen FullFrame
