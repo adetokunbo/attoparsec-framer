@@ -65,7 +65,7 @@ mkFrames' ::
   Frames m a
 mkFrames' parser onFrame fetchBytes =
   Frames
-    { framerChunkSize = 2048
+    { framerChunkSize = defaultChunkSize
     , framerOnBadParse = \_err -> pure ()
     , framerFetchBytes = fetchBytes
     , framerOnFrame = onFrame
@@ -168,8 +168,8 @@ receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
       onParse (A.Fail _ ctxs reason) = do
         let errMessage = parsingFailed ctxs reason
         if reason == closedReason
-          then -- TODO: determine a way of detecting this condition that is
-          -- independent of the error text
+          then -- TODO: determine a typed way of detecting this condition, i.e,
+          -- it is possible not to rely on a  specific error message ?
           do
             onClose
             pure (Nothing, True)
@@ -194,7 +194,7 @@ parsingFailed context reason =
    in "bad parse:" <> contexts <> cause
 
 
-data BrokenFrame = BrokenFrame String
+newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
 
 
@@ -217,3 +217,7 @@ data Progression
 
 closedReason :: String
 closedReason = "not enough input"
+
+
+defaultChunkSize :: Word32
+defaultChunkSize = 2048
