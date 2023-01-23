@@ -40,13 +40,21 @@ class FrameSize a where
   frameSize :: a -> Word32
 
 
-parseSizedFrame :: FrameSize h => A.Parser h -> (Word32 -> A.Parser b) -> A.Parser (h, b)
-parseSizedFrame parseHead mkParseBody = do
+-- | Creates an 'A.Parser' that parses a datastructure specifying a frame size, and then a separate framed one with the given size
+parseSizedFrame :: FrameSize h => A.Parser h -> A.Parser b -> A.Parser (h, b)
+parseSizedFrame parseHead parseBody = do
   h <- parseHead
-  body <- mkParseBody $ frameSize h
+  let size = frameSize h
+  body <- fixed (fromIntegral size) parseBody
   pure (h, body)
 
 
+fixed :: Word32 -> A.Parser a -> A.Parser a
+fixed i p = do
+    intermediate <- A.take $ fromIntegral i
+    case A.parseOnly (p <* A.endOfInput) intermediate of
+        Left x -> fail x
+        Right x -> pure x
 data Frames m a = Frames
   { framerChunkSize :: !Word32
   , framerOnBadParse :: !(Text -> m ())

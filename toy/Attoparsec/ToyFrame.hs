@@ -69,8 +69,8 @@ buildFrameHeader :: Header -> Builder
 buildFrameHeader fh = word32BE (hIndex fh) <> word32BE (hSize fh)
 
 
-parseFrame :: Word32 -> A.Parser Payload
-parseFrame pageSize = fmap Payload $ A.take $ fromIntegral pageSize
+parseFrame :: A.Parser Payload
+parseFrame = fmap Payload $ A.takeByteString
 
 
 parser :: A.Parser FullFrame
