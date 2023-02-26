@@ -10,8 +10,6 @@ module Data.Attoparsec.Frames (
   mkFrames,
   mkFrames',
   Frames,
-  receiveFrame,
-  receiveFrames,
   chunkSize,
   setChunkSize,
   setOnBadParse,
@@ -20,13 +18,16 @@ module Data.Attoparsec.Frames (
   NoMoreInput (..),
   Progression (..),
 
-  -- * Frame size
+  receiveFrame,
+  receiveFrames,
+
+  -- * parsing combinators
   FrameSize (..),
   parseSizedFrame,
 ) where
 
-import Control.Exception (Exception, throwIO)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Exception (Exception)
+import Control.Monad.Catch (MonadThrow(..))
 import qualified Data.Attoparsec.ByteString as A
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
@@ -66,7 +67,7 @@ data Frames m a = Frames
 
 
 mkFrames' ::
-  MonadIO m =>
+  MonadThrow m =>
   A.Parser a ->
   (a -> m Progression) ->
   (Word32 -> m ByteString) ->
@@ -78,12 +79,12 @@ mkFrames' parser onFrame fetchBytes =
     , framerFetchBytes = fetchBytes
     , framerOnFrame = onFrame
     , framerParser = parser
-    , framerOnClosed = liftIO $ throwIO NoMoreInput
+    , framerOnClosed = throwM NoMoreInput
     }
 
 
 mkFrames ::
-  MonadIO m =>
+  MonadThrow m =>
   A.Parser a ->
   (a -> m ()) ->
   (Word32 -> m ByteString) ->
@@ -96,7 +97,7 @@ mkFrames parser onFrame fetchBytes =
 
 
 receiveFrames ::
-  MonadIO m =>
+  MonadThrow m =>
   Frames m a ->
   m ()
 receiveFrames f =
@@ -128,7 +129,7 @@ setOnClosed onClose f = f {framerOnClosed = onClose}
 
 
 receiveFrames' ::
-  MonadIO m =>
+  MonadThrow m =>
   Word32 ->
   A.Parser a ->
   (Word32 -> m ByteString) ->
@@ -144,7 +145,7 @@ receiveFrames' fetchSize parser fetchBytes handleFrame onErr onClosed = do
 
 
 receiveFrame ::
-  MonadIO m =>
+  MonadThrow m =>
   Maybe ByteString ->
   Frames m a ->
   m ((Maybe ByteString), Bool)
@@ -161,7 +162,7 @@ receiveFrame restMb f =
 
 
 receiveFrame' ::
-  MonadIO m =>
+  MonadThrow m =>
   Maybe ByteString ->
   Word32 ->
   A.Parser a ->
@@ -183,7 +184,7 @@ receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
             pure (Nothing, True)
           else do
             onErr errMessage
-            liftIO $ throwIO $ BrokenFrame reason
+            throwM $ BrokenFrame reason
       onParse (A.Done i r) = do
         let extraMb = if BS.null i then Nothing else Just i
         doMore <- handleFrame r
