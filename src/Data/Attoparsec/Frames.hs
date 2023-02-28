@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -14,10 +16,10 @@ module Data.Attoparsec.Frames (
   setChunkSize,
   setOnBadParse,
   setOnClosed,
+  setOnFrame,
   BrokenFrame (..),
   NoMoreInput (..),
   Progression (..),
-
   receiveFrame,
   receiveFrames,
 
@@ -27,7 +29,7 @@ module Data.Attoparsec.Frames (
 ) where
 
 import Control.Exception (Exception)
-import Control.Monad.Catch (MonadThrow(..))
+import Control.Monad.Catch (MonadThrow (..))
 import qualified Data.Attoparsec.ByteString as A
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
@@ -56,11 +58,24 @@ fixed i p = do
     case A.parseOnly (p <* A.endOfInput) intermediate of
         Left x -> fail x
         Right x -> pure x
+-- | Handles a parsed @frame@, returning a @Progression@ to indicate if further @frames@ should be parsed.
+type FrameHandler m frame = frame -> m Progression
+
+
+-- | Used by 'FrameHandler' to indicate if additional frames should be parsed.
+data Progression
+  = Stop
+  | StopUnlessExtra
+  | Continue
+  deriving (Eq, Show)
+
+
+-- | Use an 'A.Parser' to parse a stream of datastructures from a series of byte chunks
 data Frames m a = Frames
   { framerChunkSize :: !Word32
   , framerOnBadParse :: !(Text -> m ())
-  , framerFetchBytes :: !(Word32 -> m ByteString)
-  , framerOnFrame :: !(a -> m Progression)
+  , framerNextChunk :: !(Word32 -> m ByteString)
+  , framerOnFrame :: !(FrameHandler m a)
   , framerParser :: !(A.Parser a)
   , framerOnClosed :: !(m ())
   }
@@ -69,14 +84,14 @@ data Frames m a = Frames
 mkFrames' ::
   MonadThrow m =>
   A.Parser a ->
-  (a -> m Progression) ->
+  FrameHandler m a ->
   (Word32 -> m ByteString) ->
   Frames m a
 mkFrames' parser onFrame fetchBytes =
   Frames
     { framerChunkSize = defaultChunkSize
     , framerOnBadParse = \_err -> pure ()
-    , framerFetchBytes = fetchBytes
+    , framerNextChunk = fetchBytes
     , framerOnFrame = onFrame
     , framerParser = parser
     , framerOnClosed = throwM NoMoreInput
@@ -104,7 +119,7 @@ receiveFrames f =
   let Frames
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerFetchBytes = fetchBytes
+        , framerNextChunk = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClosed
@@ -122,6 +137,11 @@ setChunkSize size f = f {framerChunkSize = size}
 
 setOnBadParse :: (Text -> m ()) -> Frames m a -> Frames m a
 setOnBadParse onErr f = f {framerOnBadParse = onErr}
+
+
+-- | Update the @FrameHandler@ of a @Frames@.
+setOnFrame :: FrameHandler m frame -> Frames m frame -> Frames m frame
+setOnFrame onFrame f = f {framerOnFrame = onFrame}
 
 
 setOnClosed :: (m ()) -> Frames m a -> Frames m a
@@ -153,7 +173,7 @@ receiveFrame restMb f =
   let Frames
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerFetchBytes = fetchBytes
+        , framerNextChunk = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClose
@@ -215,13 +235,6 @@ data NoMoreInput = NoMoreInput
 
 
 instance Exception NoMoreInput
-
-
-data Progression
-  = Stop
-  | StopUnlessExtra
-  | Continue
-  deriving (Eq, Show)
 
 
 closedReason :: String
