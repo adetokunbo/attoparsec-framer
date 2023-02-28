@@ -13,6 +13,7 @@ import Data.Attoparsec.Frames (
   setOnBadParse,
   setOnClosed,
  )
+import qualified Data.ByteString as BS
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Network.Run.TCP (runTCPServer)
@@ -26,15 +27,19 @@ main = runTCPServer Nothing "3927" $ \s -> do
   receiveFrames $ fromSocket s
 
 
+type ByteSink = BS.ByteString -> IO ()
+
+
 fromSocket :: Socket -> Frames IO Header
 fromSocket s =
-  setOnClosed onClosed $
-    setOnBadParse onFailedParse $
-      mkFrames' parseHeader (onHeader s) (recv s . fromIntegral)
+  let onHeader' = onHeader $ sendAll s
+   in setOnClosed onClosed $
+        setOnBadParse onFailedParse $
+          mkFrames' parseHeader onHeader' (recv s . fromIntegral)
 
 
-onHeader :: Socket -> Header -> IO Progression
-onHeader s Header {hIndex, hSize} = do
+onHeader :: ByteSink -> Header -> IO Progression
+onHeader sink Header {hIndex, hSize} = do
   if (hIndex == 0)
     then -- hIndex is 0; the client means 'bye', stop waiting for input
     do
@@ -44,7 +49,7 @@ onHeader s Header {hIndex, hSize} = do
       -- hIndex > 0; starting from 1, send a frame with a body whose max size is hSize
       -- generate a list of frames counting up to the index provided in the header
       toSend <- genAscFullFrames hIndex hSize
-      mapM_ (sendAll s) $ map asBytes toSend
+      mapM_ sink $ map asBytes toSend
       pure Continue
 
 

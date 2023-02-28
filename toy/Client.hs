@@ -38,7 +38,7 @@ import Network.Socket.ByteString (recv, sendAll)
 main :: IO ()
 main = runTCPClient "127.0.0.1" "3927" $ \s -> do
   trackingRef <- someTriggers 1024 >>= newTrackingRef
-  trackFrames trackingRef s Nothing
+  trackFrames trackingRef (socketSink s) Nothing
   receiveFrames $ fromSocket trackingRef s
   tracking <- readIORef trackingRef
   putStrLn $ "Received " ++ (show $ trackingFrames tracking) ++ " of total size " ++ (show $ trackingBytes tracking)
@@ -46,13 +46,11 @@ main = runTCPClient "127.0.0.1" "3927" $ \s -> do
 
 fromSocket :: IORef Tracking -> Socket -> Frames IO FullFrame
 fromSocket ref s =
-  setOnClosed onClosed $
-    setOnBadParse (onFailedParse s) $
-      mkFrames parser (onFullFrame ref s) (recv s . fromIntegral)
-
-
-onFullFrame :: IORef Tracking -> Socket -> FullFrame -> IO ()
-onFullFrame ref socket frame = trackFrames ref socket $ Just frame
+  let sink = socketSink s
+      onFullFrame' f = trackFrames ref sink $ Just f
+   in setOnClosed onClosed $
+        setOnBadParse (onFailedParse' sink) $
+          mkFrames parser onFullFrame' (recv s . fromIntegral)
 
 
 data Tracking = Tracking
@@ -67,8 +65,8 @@ newTrackingRef :: [Header] -> IO (IORef Tracking)
 newTrackingRef xs = newIORef $ Tracking xs 0 0 (0, 0)
 
 
-trackFrames :: IORef Tracking -> Socket -> Maybe FullFrame -> IO ()
-trackFrames trackingRef socket frameMb = do
+trackFrames :: IORef Tracking -> ByteSink -> Maybe FullFrame -> IO ()
+trackFrames trackingRef sink frameMb = do
   t <- readIORef trackingRef
   let (target, lastCount) = trackingCountdown t
       nextCount = lastCount + 1
@@ -88,7 +86,7 @@ trackFrames trackingRef socket frameMb = do
   case (frameMb, trackingLeft t) of
     (Just (_, Payload p'), []) -> incrOr p' $ do
       writeIORef trackingRef $ incrWithPayload p'
-      sendBye socket
+      sink bye
     (Just (_, Payload p'), x : xs) -> incrOr p' $ do
       let updatedTracking =
             (incrWithPayload p')
@@ -96,7 +94,7 @@ trackFrames trackingRef socket frameMb = do
               , trackingLeft = xs
               }
       writeIORef trackingRef updatedTracking
-      sendAll socket $ asBytes x
+      sink $ asBytes x
     (Nothing, x : xs) -> do
       writeIORef
         trackingRef
@@ -104,19 +102,26 @@ trackFrames trackingRef socket frameMb = do
           { trackingCountdown = (fromIntegral $ hIndex x, 0)
           , trackingLeft = xs
           }
-      sendAll socket $ asBytes x
-    (Nothing, []) -> sendBye socket
+      sink $ asBytes x
+    (Nothing, []) -> sink bye
 
 
-onFailedParse :: Socket -> Text -> IO ()
-onFailedParse s cause = do
+type ByteSink = BS.ByteString -> IO ()
+
+
+socketSink :: Socket -> ByteSink
+socketSink = sendAll
+
+
+bye :: BS.ByteString
+bye = asBytes $ Header 0 0
+
+
+onFailedParse' :: ByteSink -> Text -> IO ()
+onFailedParse' sink cause = do
   -- if does not parse as a full frame immediately terminate the connection
   Text.putStrLn $ "parse error ended a connection to a toy server: " <> cause
-  sendBye s
-
-
-sendBye :: Socket -> IO ()
-sendBye s = sendAll s $ asBytes $ Header 0 0
+  sink bye
 
 
 onClosed :: IO ()
