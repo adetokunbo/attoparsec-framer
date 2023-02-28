@@ -14,8 +14,8 @@ a few additional combinators that allow the parser to be used to process frames
 from the kind of framed byte streams commonly used to implement networking
 protocols.
 
-A @'Framer'@ specifies how the framing function @'receiveFrames'@ should parse a
-byte stream.
+A @'Framer'@ specifies how the processing function @'receiveFrames'@ should
+parse a byte stream.
 
 Minimally, a @Framer@ specifies
 
