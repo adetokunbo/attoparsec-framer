@@ -5,10 +5,10 @@
 module Main (main) where
 
 import Attoparsec.ToyFrame (Header (..), asBytes, genAscFullFrames, parseHeader)
-import Data.Attoparsec.Frames (
-  Frames,
+import Data.Attoparsec.Framer (
+  Framer,
   Progression (..),
-  mkFrames',
+  mkFramer',
   receiveFrames,
   setOnBadParse,
   setOnClosed,
@@ -30,12 +30,12 @@ main = runTCPServer Nothing "3927" $ \s -> do
 type ByteSink = BS.ByteString -> IO ()
 
 
-fromSocket :: Socket -> Frames IO Header
+fromSocket :: Socket -> Framer IO Header
 fromSocket s =
   let onHeader' = onHeader $ sendAll s
    in setOnClosed onClosed $
         setOnBadParse onFailedParse $
-          mkFrames' parseHeader onHeader' (recv s . fromIntegral)
+          mkFramer' parseHeader onHeader' (recv s . fromIntegral)
 
 
 onHeader :: ByteSink -> Header -> IO Progression

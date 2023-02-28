@@ -2,15 +2,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
-module Data.Attoparsec.Frames.Testing (
+{- |
+Module      : Data.Attoparsec.Framer.Testing
+Copyright   : (c) 2022 Tim Emiola
+Maintainer  : Tim Emiola <adetokunbo@emio.la>
+SPDX-License-Identifier: BSD3
+
+This module provides combinators that simplify unit tests of code that
+use @'Framer's@.
+-}
+module Data.Attoparsec.Framer.Testing (
   -- * testing combinators
-  parsesFromFramesOk,
+  parsesFromFramerOk,
   chunksOfN,
 ) where
 
 import Control.Exception (catch)
 import qualified Data.Attoparsec.ByteString as A
-import Data.Attoparsec.Frames
+import Data.Attoparsec.Framer
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.IORef (
@@ -24,20 +33,24 @@ import Data.List (unfoldr)
 import Data.Word (Word32)
 
 
-parsesFromFramesOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
-parsesFromFramesOk asBytes parser chunkSize' wanted = do
+{- | Creates a 'Framer' and uses 'receiveFrames to confirm that the expect frames
+  are received '
+-}
+parsesFromFramerOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
+parsesFromFramerOk asBytes parser chunkSize' wanted = do
   chunkStore <- newIORef Nothing
   dst <- newIORef []
   let updateDst x = modifyIORef' dst ((:) x)
       mkChunks n = mconcat $ map (chunksOfN n . asBytes) wanted
       src = nextFrom' mkChunks chunkStore
-      frames = setChunkSize chunkSize' $ mkFrames parser updateDst src
+      frames = setChunkSize chunkSize' $ mkFramer parser updateDst src
   receiveFrames frames `catch` (\(_e :: NoMoreInput) -> pure ())
 
   got <- readIORef dst
   pure $ got == reverse wanted
 
 
+-- | Split a 'ByteString' into chunks of given size
 chunksOfN :: Int -> ByteString -> [ByteString]
 chunksOfN x b =
   let go y =

@@ -1,26 +1,36 @@
 cabal-version:      3.0
-name:               attoparsec-frames
+name:               attoparsec-framer
 version:            0.1.0.0
-synopsis:           Support for parsing frames of bytes and streams of frames
-description:        Supports parsing frames of bytes
+synopsis:           Use Attoparsec to parse framed protocol bytestreams
+description:
+  A library that simplifies the use of
+  [Attoparsec](https://hackage.haskell.org/package/attoparsec) when processing
+  framed protocol bytestreams.
+
+  As well as reading the haddocks, please take a look at
+  [demo server](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Server.hs)
+  and [demo client](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Client.hs)
+  as working examples of its use.
+
+
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Tim Emiola
 maintainer:         adetokunbo@emio.la
 category:           Web
-homepage:           https://github.com/adetokunbo/attoparsec-frames#readme
-bug-reports:        https://github.com/adetokunbo/attoparsec-frames/issues
+homepage:           https://github.com/adetokunbo/attoparsec-framer#readme
+bug-reports:        https://github.com/adetokunbo/attoparsec-framer/issues
 build-type:         Simple
 extra-source-files: ChangeLog.md
 
 source-repository head
   type:     git
-  location: https://github.com/adetokunbo/attoparsec-frames.git
+  location: https://github.com/adetokunbo/attoparsec-framer.git
 
 library
   exposed-modules:
-    Data.Attoparsec.Frames
-    Data.Attoparsec.Frames.Testing
+    Data.Attoparsec.Framer
+    Data.Attoparsec.Framer.Testing
 
   hs-source-dirs:   src
   build-depends:
@@ -42,7 +52,7 @@ executable toy-server
   build-depends:
     , attoparsec         >=0.14.4   && <0.15
     , attoparsec-binary  >=0.2      && <0.3
-    , attoparsec-frames
+    , attoparsec-framer
     , exceptions
     , base               >=4.10     && <5
     , bytestring         >=0.10.8.2 && <0.12.0.0
@@ -66,7 +76,7 @@ executable toy-client
   build-depends:
     , attoparsec         >=0.14.4   && <0.15
     , attoparsec-binary  >=0.2      && <0.3
-    , attoparsec-frames
+    , attoparsec-framer
     , base               >=4.10     && <5
     , bytestring         >=0.10.8.2 && <0.12.0.0
     , network            >=3.1.0    && <4
@@ -92,7 +102,7 @@ test-suite unittests
   build-depends:
     , attoparsec
     , attoparsec-binary
-    , attoparsec-frames
+    , attoparsec-framer
     , exceptions
     , base
     , bytestring

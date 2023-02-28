@@ -13,8 +13,8 @@ module Attoparsec.ToyFrameSpec (spec) where
 
 import Attoparsec.ToyFrame
 import Control.Exception (ArithException (..), throwIO)
-import Data.Attoparsec.Frames
-import Data.Attoparsec.Frames.Testing
+import Data.Attoparsec.Framer
+import Data.Attoparsec.Framer.Testing
 import qualified Data.ByteString as BS
 import Data.Word (Word32)
 import Test.Hspec
@@ -30,7 +30,7 @@ spec = describe "ToyFrame" $ do
   mapM_ receivesWithChunksOf [16, 256, 1024, 2048, 4096, 8192]
 
   context "when input ends, receivesFrames" $ do
-    let basic = mkFrames parser (const $ pure ()) $ const $ pure BS.empty
+    let basic = mkFramer parser (const $ pure ()) $ const $ pure BS.empty
         otherError = setOnClosed (throwIO Underflow) basic
         noError = setOnClosed (pure ()) basic
 
@@ -63,4 +63,4 @@ prop_trip =
 prop_receiveFrames :: Word32 -> Property
 prop_receiveFrames chunkSize' = monadicIO $
   forAllM (listOf1 genFullFrame) $
-    \ps -> run $ parsesFromFramesOk asBytes parser chunkSize' ps
+    \ps -> run $ parsesFromFramerOk asBytes parser chunkSize' ps

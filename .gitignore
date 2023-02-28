@@ -76,6 +76,7 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 stack*.yaml.lock
+*.ps
 
 ### Linux ###
 

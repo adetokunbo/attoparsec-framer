@@ -12,9 +12,9 @@ import Attoparsec.ToyFrame (
   parser,
   someTriggers,
  )
-import Data.Attoparsec.Frames (
-  Frames,
-  mkFrames,
+import Data.Attoparsec.Framer (
+  Framer,
+  mkFramer,
   receiveFrames,
   setOnBadParse,
   setOnClosed,
@@ -44,13 +44,13 @@ main = runTCPClient "127.0.0.1" "3927" $ \s -> do
   putStrLn $ "Received " ++ (show $ trackingFrames tracking) ++ " of total size " ++ (show $ trackingBytes tracking)
 
 
-fromSocket :: IORef Tracking -> Socket -> Frames IO FullFrame
+fromSocket :: IORef Tracking -> Socket -> Framer IO FullFrame
 fromSocket ref s =
   let sink = socketSink s
       onFullFrame' f = trackFrames ref sink $ Just f
    in setOnClosed onClosed $
         setOnBadParse (onFailedParse' sink) $
-          mkFrames parser onFullFrame' (recv s . fromIntegral)
+          mkFramer parser onFullFrame' (recv s . fromIntegral)
 
 
 data Tracking = Tracking
