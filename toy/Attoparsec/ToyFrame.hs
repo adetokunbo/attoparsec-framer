@@ -28,7 +28,6 @@ module Attoparsec.ToyFrame (
 
 import qualified Data.Attoparsec.Binary as A
 import qualified Data.Attoparsec.ByteString as A
-import Data.Attoparsec.Frames (FrameSize (..), parseSizedFrame)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Builder
@@ -41,6 +40,28 @@ import Test.QuickCheck (
   generate,
   vectorOf,
  )
+
+
+-- | Class for datastructures that specify the frame size of a payload; used by 'parseSizedFrame'
+class FrameSize a where
+  frameSize :: a -> Word32
+
+
+-- | Creates an 'A.Parser' that parses a datastructure specifying a frame size, and then a separate framed one with the given size
+parseSizedFrame :: FrameSize h => A.Parser h -> A.Parser b -> A.Parser (h, b)
+parseSizedFrame parseHead parseBody = do
+  h <- parseHead
+  let size = frameSize h
+  body <- fixed (fromIntegral size) parseBody
+  pure (h, body)
+
+
+fixed :: Word32 -> A.Parser a -> A.Parser a
+fixed i p = do
+  intermediate <- A.take $ fromIntegral i
+  case A.parseOnly (p <* A.endOfInput) intermediate of
+    Left x -> fail x
+    Right x -> pure x
 
 
 type FullFrame = (Header, Payload)
