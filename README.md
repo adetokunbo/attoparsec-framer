@@ -17,6 +17,6 @@ This repository includes the attoparsec-frame library, a [demo server] and a
 [hackage-deps]:       <http://packdeps.haskellers.com/feed?needle=attoparsec-framer>
 [hackage-badge]:      <https://img.shields.io/hackage/v/attoparsec-framer.svg>
 [hackage]:            <https://hackage.haskell.org/package/attoparsec-framer>
-[demo client]:        <https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Client.hs>
-[demo server]:        <https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Server.hs>
+[demo client]:        <https://github.com/adetokunbo/attoparsec-framer/blob/main/toy/Client.hs>
+[demo server]:        <https://github.com/adetokunbo/attoparsec-framer/blob/main/toy/Server.hs>
 [Attoparsec]:         <https://hackage.haskell.org/package/attoparsec>

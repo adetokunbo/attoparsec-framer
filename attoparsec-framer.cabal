@@ -8,8 +8,8 @@ description:
   framed protocol bytestreams.
 
   As well as reading the haddocks, please take a look at
-  [demo server](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Server.hs)
-  and [demo client](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Client.hs)
+  [demo server](https://github.com/adetokunbo/attoparsec-framer/blob/main/toy/Server.hs)
+  and [demo client](https://github.com/adetokunbo/attoparsec-framer/blob/main/toy/Client.hs)
   as working examples of its use.
 
 
