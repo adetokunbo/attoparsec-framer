@@ -2,6 +2,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
+{- |
+Module      : Data.Attoparsec.Framer.Testing
+Copyright   : (c) 2022 Tim Emiola
+Maintainer  : Tim Emiola <adetokunbo@emio.la>
+SPDX-License-Identifier: BSD3
+
+This module provides combinators that simplify unit tests of code that
+use @'Framer's@.
+-}
 module Data.Attoparsec.Framer.Testing (
   -- * testing combinators
   parsesFromFramerOk,
