@@ -33,6 +33,9 @@ import Data.List (unfoldr)
 import Data.Word (Word32)
 
 
+{- | Creates a 'Framer' and uses 'receiveFrames to confirm that the expect frames
+  are received '
+-}
 parsesFromFramerOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
 parsesFromFramerOk asBytes parser chunkSize' wanted = do
   chunkStore <- newIORef Nothing
@@ -47,6 +50,7 @@ parsesFromFramerOk asBytes parser chunkSize' wanted = do
   pure $ got == reverse wanted
 
 
+-- | Split a 'ByteString' into chunks of given size
 chunksOfN :: Int -> ByteString -> [ByteString]
 chunksOfN x b =
   let go y =

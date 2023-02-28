@@ -162,14 +162,17 @@ receiveFrame restMb f =
    in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
 
 
+-- | The chunk size of a @Framer@.
 chunkSize :: Framer m a -> Word32
 chunkSize = framerChunkSize
 
 
+-- | Update the chunk size of a @Framer@.
 setChunkSize :: Word32 -> Framer m a -> Framer m a
 setChunkSize size f = f {framerChunkSize = size}
 
 
+-- | Update the parse error handler of a @Framer@.
 setOnBadParse :: (Text -> m ()) -> Framer m a -> Framer m a
 setOnBadParse onErr f = f {framerOnBadParse = onErr}
 
@@ -179,6 +182,7 @@ setOnFrame :: FrameHandler m frame -> Framer m frame -> Framer m frame
 setOnFrame onFrame f = f {framerOnFrame = onFrame}
 
 
+-- | Update the end-of-input handler of a @Framer@.
 setOnClosed :: (m ()) -> Framer m a -> Framer m a
 setOnClosed onClose f = f {framerOnClosed = onClose}
 
