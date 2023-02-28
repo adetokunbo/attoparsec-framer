@@ -58,6 +58,7 @@ data Frames m a = Frames
   }
 
 
+-- | Constructs 'Frames' that yields parsed datastructures until the handler's 'Progression' stops.
 mkFrames' ::
   MonadThrow m =>
   A.Parser a ->
@@ -75,6 +76,7 @@ mkFrames' parser onFrame fetchBytes =
     }
 
 
+-- | Constructs 'Frames' that continously yields parsed datastructures.
 mkFrames ::
   MonadThrow m =>
   A.Parser a ->
@@ -88,6 +90,7 @@ mkFrames parser onFrame fetchBytes =
    in mkFrames' parser onFrameContinue fetchBytes
 
 
+-- | Repeatedly receive frames until the @FrameHandler@ indicates otherwise.
 receiveFrames ::
   MonadThrow m =>
   Frames m a ->
@@ -158,6 +161,23 @@ receiveFrame restMb f =
    in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
 
 
+{- |
+
+Why MonadThrow instead of Either e or MonadError ?
+
+receiveFrames is parsing framed protocol streams
+this will usually be done in a client or server library
+
+MonadThrow is used so that the onFrame, onBadParse and onClose can raise library
+exception types from the client/server library classes directly whenever
+necessary.
+
+I.e, no specially handling of exceptions that occur during onFrame, and
+if onErr does not itself throw an exception, 'BrokenFrame' is thrown.
+
+The caller has created the Framer and provided it with onFrame, onErr and onClose, and should
+ensure that whatever is necessary on exceptions during onFrame are handle appropriately.
+-}
 receiveFrame' ::
   MonadThrow m =>
   Maybe ByteString ->
@@ -200,6 +220,7 @@ parsingFailed context reason =
    in "bad parse:" <> contexts <> cause
 
 
+-- | Thrown by 'receiveFrames' or 'receiveFrame' if the parsing fails
 newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
 
@@ -207,6 +228,9 @@ newtype BrokenFrame = BrokenFrame String
 instance Exception BrokenFrame
 
 
+{- | Thrown by 'receiveFrames' or 'receiveFrame' when no further input is available
+ and no @onClose@ handler is specified
+-}
 data NoMoreInput = NoMoreInput
   deriving (Eq, Show)
 
