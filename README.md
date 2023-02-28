@@ -6,95 +6,17 @@
 [![Hackage Dependencies][hackage-deps-badge]][hackage-deps]
 [![BSD3](https://img.shields.io/badge/license-BSD3-green.svg?dummy)](https://github.com/adetokunbo/attoparsec-framer/blob/master/LICENSE)
 
-`attoparsec-framer` is a small library of __convenient__ functions for writing hspec tests.
+`attoparsec-framer` simplifies use of [Attoparsec] when processing framed
+protocol bytestreams.
 
-It's simplifies test code that returns `Either` or `Maybe` types from monadic code.
-
-## Example
-
-```haskell
-{-# LANGUAGE OverloadedStrings #-}
-
-import System.Environment
-  ( lookupEnv,
-    setEnv,
-    unsetEnv
-   )
-import Text.Read   (readEither)
-import Test.Hspec
-import Test.Hspec.Benri
-
-spec :: Spec
-spec = describe "Checking the functions in Test.Hspec.Benri" $ before_ clearIt $ do
-  context "endsJust_" $ do
-    it "should succeed if a Just is returned" $ do
-      setIt
-      endsJust_ getIt
-
-  context "endsJust" $ do
-    it "should match the Just value" $ do
-      setIt
-      getIt `endsJust` "1"
-
-  context "endsNothing" $ do
-    it "should succeed when the action returns Nothing" $ do
-      setIt
-      getIt `endsJust` "1"
-      clearIt
-      endsNothing getIt
-
-  context "endsLeft_" $ do
-    it "should succeed if a Left is returned" $ do
-      setNotInt
-      endsLeft_ getAsInt
-
-  context "endsLeft" $ do
-    it "should match the Left value" $ getAsInt `endsLeft` "not set!"
-
-  context "endsRight_" $ do
-    it "should succeed if a Right is returned" $ do
-      setIt
-      endsRight_ getAsInt
-
-  context "endsRight" $ do
-    it "should match the Right value" $ do
-      setIt
-      getAsInt `endsRight` 1
-
-  context "endsThen" $ do
-    it "should implement the behaviour of the other functions easily" $ do
-      setIt
-      getIt `endsThen` (== (Just "1"))
-      clearIt
-      getIt `endsThen` (== Nothing)
-      getAsInt `endsThen` (== (Left "not set!"))
-      setIt
-      getAsInt `endsThen` (== (Right 1))
-
-getIt :: IO (Maybe String)
-getIt = lookupEnv envName
-
-getAsInt :: IO (Either String Int)
-getAsInt = maybe (Left "not set!") readEither <$> getIt
-
-setIt :: IO ()
-setIt = setEnv envName "1"
-
-setNotInt :: IO ()
-setNotInt = setEnv envName "foo"
-
-clearIt :: IO ()
-clearIt = unsetEnv envName
-
-envName :: String
-envName = "AN_ENV_VAR"
-
-main :: IO ()
-main = hspec spec
-
-```
+This repository includes the attoparsec-frame library, a [demo server] and a
+[demo client]. To see how it's used, please read the package documentation on
+[hackage] and then take a look at demos.
 
 [hackage-deps-badge]: <https://img.shields.io/hackage-deps/v/attoparsec-framer.svg>
 [hackage-deps]:       <http://packdeps.haskellers.com/feed?needle=attoparsec-framer>
 [hackage-badge]:      <https://img.shields.io/hackage/v/attoparsec-framer.svg>
 [hackage]:            <https://hackage.haskell.org/package/attoparsec-framer>
+[demo client]:        <https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Client.hs>
+[demo server]:        <https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Server.hs>
+[Attoparsec]:         <https://hackage.haskell.org/package/attoparsec>
