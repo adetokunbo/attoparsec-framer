@@ -1,8 +1,13 @@
 cabal-version:      3.0
 name:               attoparsec-framer
 version:            0.1.0.0
-synopsis:           Support for parsing frames of bytes and streams of frames
-description:        Supports parsing frames of bytes
+synopsis:           Use Attoparsec to parse framed protocol bytestreams
+description:
+
+   Simplifies use of
+   [Attoparsec](https://hackage.haskell.org/package/attoparsec) when processing
+   framed protocol bytestreams
+
 license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Tim Emiola

@@ -3,12 +3,7 @@
 `attoparsec-framer` uses [PVP Versioning][1].
 
 
-## 0.1.0.1 -- 2022-12-23
-
-* Added doctests along with other documentation fixes
-
-
-## 0.1.0.0 -- 2022-11-10
+## 0.1.0.0 -- 2023-02-28
 
 * Initial version.
 
