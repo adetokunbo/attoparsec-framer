@@ -22,10 +22,6 @@ module Data.Attoparsec.Frames (
   Progression (..),
   receiveFrame,
   receiveFrames,
-
-  -- * parsing combinators
-  FrameSize (..),
-  parseSizedFrame,
 ) where
 
 import Control.Exception (Exception)
@@ -39,25 +35,6 @@ import qualified Data.Text as Text
 import Data.Word (Word32)
 
 
-class FrameSize a where
-  frameSize :: a -> Word32
-
-
--- | Creates an 'A.Parser' that parses a datastructure specifying a frame size, and then a separate framed one with the given size
-parseSizedFrame :: FrameSize h => A.Parser h -> A.Parser b -> A.Parser (h, b)
-parseSizedFrame parseHead parseBody = do
-  h <- parseHead
-  let size = frameSize h
-  body <- fixed (fromIntegral size) parseBody
-  pure (h, body)
-
-
-fixed :: Word32 -> A.Parser a -> A.Parser a
-fixed i p = do
-    intermediate <- A.take $ fromIntegral i
-    case A.parseOnly (p <* A.endOfInput) intermediate of
-        Left x -> fail x
-        Right x -> pure x
 -- | Handles a parsed @frame@, returning a @Progression@ to indicate if further @frames@ should be parsed.
 type FrameHandler m frame = frame -> m Progression
 
