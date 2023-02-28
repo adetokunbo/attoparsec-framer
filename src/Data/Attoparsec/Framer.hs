@@ -9,19 +9,26 @@
 
 module Data.Attoparsec.Framer (
   -- * Framer
+  Framer,
+  FrameHandler,
+  Progression (..),
   mkFramer,
   mkFramer',
-  Framer,
-  chunkSize,
+
+  -- * query/update a  @'Framer'@
   setChunkSize,
   setOnBadParse,
   setOnClosed,
   setOnFrame,
-  BrokenFrame (..),
-  NoMoreInput (..),
-  Progression (..),
+  chunkSize,
+
+  -- * run the @FrameHandler@
   receiveFrame,
   receiveFrames,
+
+  -- * potential handling exceptions
+  BrokenFrame (..),
+  NoMoreInput (..),
 ) where
 
 import Control.Exception (Exception)
@@ -47,13 +54,13 @@ data Progression
   deriving (Eq, Show)
 
 
--- | Use an 'A.Parser' to parse a stream of datastructures from a series of byte chunks
-data Framer m a = Framer
+-- | Use an 'A.Parser' to parse a stream of @frames@ from a series of byte chunks
+data Framer m frame = Framer
   { framerChunkSize :: !Word32
   , framerOnBadParse :: !(Text -> m ())
   , framerNextChunk :: !(Word32 -> m ByteString)
-  , framerOnFrame :: !(FrameHandler m a)
-  , framerParser :: !(A.Parser a)
+  , framerOnFrame :: !(FrameHandler m frame)
+  , framerParser :: !(A.Parser frame)
   , framerOnClosed :: !(m ())
   }
 
@@ -229,7 +236,7 @@ instance Exception BrokenFrame
 
 
 {- | Thrown by 'receiveFrames' or 'receiveFrame' when no further input is available
- and no @onClose@ handler is specified
+ and @setOnClosed@ was not used.
 -}
 data NoMoreInput = NoMoreInput
   deriving (Eq, Show)
