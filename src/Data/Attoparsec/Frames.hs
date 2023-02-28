@@ -8,10 +8,10 @@
 {-# OPTIONS_HADDOCK prune not-home #-}
 
 module Data.Attoparsec.Frames (
-  -- * Frames
-  mkFrames,
-  mkFrames',
-  Frames,
+  -- * Framer
+  mkFramer,
+  mkFramer',
+  Framer,
   chunkSize,
   setChunkSize,
   setOnBadParse,
@@ -48,7 +48,7 @@ data Progression
 
 
 -- | Use an 'A.Parser' to parse a stream of datastructures from a series of byte chunks
-data Frames m a = Frames
+data Framer m a = Framer
   { framerChunkSize :: !Word32
   , framerOnBadParse :: !(Text -> m ())
   , framerNextChunk :: !(Word32 -> m ByteString)
@@ -58,15 +58,15 @@ data Frames m a = Frames
   }
 
 
--- | Constructs 'Frames' that yields parsed datastructures until the handler's 'Progression' stops.
-mkFrames' ::
+-- | Constructs 'Framer' that yields parsed datastructures until the handler's 'Progression' stops.
+mkFramer' ::
   MonadThrow m =>
   A.Parser a ->
   FrameHandler m a ->
   (Word32 -> m ByteString) ->
-  Frames m a
-mkFrames' parser onFrame fetchBytes =
-  Frames
+  Framer m a
+mkFramer' parser onFrame fetchBytes =
+  Framer
     { framerChunkSize = defaultChunkSize
     , framerOnBadParse = \_err -> pure ()
     , framerNextChunk = fetchBytes
@@ -76,27 +76,27 @@ mkFrames' parser onFrame fetchBytes =
     }
 
 
--- | Constructs 'Frames' that continously yields parsed datastructures.
-mkFrames ::
+-- | Constructs 'Framer' that continously yields parsed datastructures.
+mkFramer ::
   MonadThrow m =>
   A.Parser a ->
   (a -> m ()) ->
   (Word32 -> m ByteString) ->
-  Frames m a
-mkFrames parser onFrame fetchBytes =
+  Framer m a
+mkFramer parser onFrame fetchBytes =
   let onFrameContinue x = do
         onFrame x
         pure Continue
-   in mkFrames' parser onFrameContinue fetchBytes
+   in mkFramer' parser onFrameContinue fetchBytes
 
 
 -- | Repeatedly receive frames until the @FrameHandler@ indicates otherwise.
 receiveFrames ::
   MonadThrow m =>
-  Frames m a ->
+  Framer m a ->
   m ()
 receiveFrames f =
-  let Frames
+  let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
         , framerNextChunk = fetchBytes
@@ -107,24 +107,24 @@ receiveFrames f =
    in receiveFrames' fetchSize parser fetchBytes onFrame onErr onClosed
 
 
-chunkSize :: Frames m a -> Word32
+chunkSize :: Framer m a -> Word32
 chunkSize = framerChunkSize
 
 
-setChunkSize :: Word32 -> Frames m a -> Frames m a
+setChunkSize :: Word32 -> Framer m a -> Framer m a
 setChunkSize size f = f {framerChunkSize = size}
 
 
-setOnBadParse :: (Text -> m ()) -> Frames m a -> Frames m a
+setOnBadParse :: (Text -> m ()) -> Framer m a -> Framer m a
 setOnBadParse onErr f = f {framerOnBadParse = onErr}
 
 
--- | Update the @FrameHandler@ of a @Frames@.
-setOnFrame :: FrameHandler m frame -> Frames m frame -> Frames m frame
+-- | Update the @FrameHandler@ of a @Framer@.
+setOnFrame :: FrameHandler m frame -> Framer m frame -> Framer m frame
 setOnFrame onFrame f = f {framerOnFrame = onFrame}
 
 
-setOnClosed :: (m ()) -> Frames m a -> Frames m a
+setOnClosed :: (m ()) -> Framer m a -> Framer m a
 setOnClosed onClose f = f {framerOnClosed = onClose}
 
 
@@ -147,10 +147,10 @@ receiveFrames' fetchSize parser fetchBytes handleFrame onErr onClosed = do
 receiveFrame ::
   MonadThrow m =>
   Maybe ByteString ->
-  Frames m a ->
+  Framer m a ->
   m ((Maybe ByteString), Bool)
 receiveFrame restMb f =
-  let Frames
+  let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
         , framerNextChunk = fetchBytes

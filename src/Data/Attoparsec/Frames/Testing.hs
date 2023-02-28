@@ -4,7 +4,7 @@
 
 module Data.Attoparsec.Frames.Testing (
   -- * testing combinators
-  parsesFromFramesOk,
+  parsesFromFramerOk,
   chunksOfN,
 ) where
 
@@ -24,14 +24,14 @@ import Data.List (unfoldr)
 import Data.Word (Word32)
 
 
-parsesFromFramesOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
-parsesFromFramesOk asBytes parser chunkSize' wanted = do
+parsesFromFramerOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
+parsesFromFramerOk asBytes parser chunkSize' wanted = do
   chunkStore <- newIORef Nothing
   dst <- newIORef []
   let updateDst x = modifyIORef' dst ((:) x)
       mkChunks n = mconcat $ map (chunksOfN n . asBytes) wanted
       src = nextFrom' mkChunks chunkStore
-      frames = setChunkSize chunkSize' $ mkFrames parser updateDst src
+      frames = setChunkSize chunkSize' $ mkFramer parser updateDst src
   receiveFrames frames `catch` (\(_e :: NoMoreInput) -> pure ())
 
   got <- readIORef dst
