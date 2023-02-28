@@ -9,9 +9,10 @@
 `attoparsec-framer` simplifies use of [Attoparsec] when processing framed
 protocol bytestreams.
 
-This repository includes the attoparsec-frame library, a [demo server] and a
-[demo client]. To see how it's used, please read the package documentation on
-[hackage] and then take a look at demos.
+This repository includes the library source code, and a [demo server] and a
+[demo client]. To understand how to use it, please read the package
+documentation on [hackage], then take a look at the demo modules for
+inspiration.
 
 [hackage-deps-badge]: <https://img.shields.io/hackage-deps/v/attoparsec-framer.svg>
 [hackage-deps]:       <http://packdeps.haskellers.com/feed?needle=attoparsec-framer>
