@@ -19,8 +19,8 @@ source-repository head
 
 library
   exposed-modules:
-    Data.Attoparsec.Frames
-    Data.Attoparsec.Frames.Testing
+    Data.Attoparsec.Framer
+    Data.Attoparsec.Framer.Testing
 
   hs-source-dirs:   src
   build-depends:

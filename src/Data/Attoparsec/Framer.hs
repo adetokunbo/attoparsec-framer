@@ -7,7 +7,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
-module Data.Attoparsec.Frames (
+module Data.Attoparsec.Framer (
   -- * Framer
   mkFramer,
   mkFramer',

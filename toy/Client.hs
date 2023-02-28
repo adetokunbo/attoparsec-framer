@@ -12,7 +12,7 @@ import Attoparsec.ToyFrame (
   parser,
   someTriggers,
  )
-import Data.Attoparsec.Frames (
+import Data.Attoparsec.Framer (
   Framer,
   mkFramer,
   receiveFrames,

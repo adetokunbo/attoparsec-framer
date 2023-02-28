@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
-module Data.Attoparsec.Frames.Testing (
+module Data.Attoparsec.Framer.Testing (
   -- * testing combinators
   parsesFromFramerOk,
   chunksOfN,
@@ -10,7 +10,7 @@ module Data.Attoparsec.Frames.Testing (
 
 import Control.Exception (catch)
 import qualified Data.Attoparsec.ByteString as A
-import Data.Attoparsec.Frames
+import Data.Attoparsec.Framer
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.IORef (

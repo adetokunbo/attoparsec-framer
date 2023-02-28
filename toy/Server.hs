@@ -5,7 +5,7 @@
 module Main (main) where
 
 import Attoparsec.ToyFrame (Header (..), asBytes, genAscFullFrames, parseHeader)
-import Data.Attoparsec.Frames (
+import Data.Attoparsec.Framer (
   Framer,
   Progression (..),
   mkFramer',

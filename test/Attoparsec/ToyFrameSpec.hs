@@ -13,8 +13,8 @@ module Attoparsec.ToyFrameSpec (spec) where
 
 import Attoparsec.ToyFrame
 import Control.Exception (ArithException (..), throwIO)
-import Data.Attoparsec.Frames
-import Data.Attoparsec.Frames.Testing
+import Data.Attoparsec.Framer
+import Data.Attoparsec.Framer.Testing
 import qualified Data.ByteString as BS
 import Data.Word (Word32)
 import Test.Hspec
