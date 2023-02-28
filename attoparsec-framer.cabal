@@ -3,10 +3,15 @@ name:               attoparsec-framer
 version:            0.1.0.0
 synopsis:           Use Attoparsec to parse framed protocol bytestreams
 description:
+  A library that simplifies the use of
+  [Attoparsec](https://hackage.haskell.org/package/attoparsec) when processing
+  framed protocol bytestreams.
 
-   Simplifies use of
-   [Attoparsec](https://hackage.haskell.org/package/attoparsec) when processing
-   framed protocol bytestreams
+  As well as reading the haddocks, please take a look at
+  [demo server](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Server.hs)
+  and [demo client](https://github.com/adetokunbo/attoparsec-frames/blob/main/toy/Client.hs)
+  as working examples of its use.
+
 
 license:            BSD-3-Clause
 license-file:       LICENSE
