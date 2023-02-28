@@ -1,12 +1,12 @@
-# attoparsec-frames
+# attoparsec-framer
 
-[![GitHub CI](https://github.com/adetokunbo/attoparsec-frames/actions/workflows/ci.yml/badge.svg)](https://github.com/adetokunbo/attoparsec-frames/actions)
-[![Stackage Nightly](http://stackage.org/package/attoparsec-frames/badge/nightly)](http://stackage.org/nightly/package/attoparsec-frames)
+[![GitHub CI](https://github.com/adetokunbo/attoparsec-framer/actions/workflows/ci.yml/badge.svg)](https://github.com/adetokunbo/attoparsec-framer/actions)
+[![Stackage Nightly](http://stackage.org/package/attoparsec-framer/badge/nightly)](http://stackage.org/nightly/package/attoparsec-framer)
 [![Hackage][hackage-badge]][hackage]
 [![Hackage Dependencies][hackage-deps-badge]][hackage-deps]
-[![BSD3](https://img.shields.io/badge/license-BSD3-green.svg?dummy)](https://github.com/adetokunbo/attoparsec-frames/blob/master/LICENSE)
+[![BSD3](https://img.shields.io/badge/license-BSD3-green.svg?dummy)](https://github.com/adetokunbo/attoparsec-framer/blob/master/LICENSE)
 
-`attoparsec-frames` is a small library of __convenient__ functions for writing hspec tests.
+`attoparsec-framer` is a small library of __convenient__ functions for writing hspec tests.
 
 It's simplifies test code that returns `Either` or `Maybe` types from monadic code.
 
@@ -94,7 +94,7 @@ main = hspec spec
 
 ```
 
-[hackage-deps-badge]: <https://img.shields.io/hackage-deps/v/attoparsec-frames.svg>
-[hackage-deps]:       <http://packdeps.haskellers.com/feed?needle=attoparsec-frames>
-[hackage-badge]:      <https://img.shields.io/hackage/v/attoparsec-frames.svg>
-[hackage]:            <https://hackage.haskell.org/package/attoparsec-frames>
+[hackage-deps-badge]: <https://img.shields.io/hackage-deps/v/attoparsec-framer.svg>
+[hackage-deps]:       <http://packdeps.haskellers.com/feed?needle=attoparsec-framer>
+[hackage-badge]:      <https://img.shields.io/hackage/v/attoparsec-framer.svg>
+[hackage]:            <https://hackage.haskell.org/package/attoparsec-framer>

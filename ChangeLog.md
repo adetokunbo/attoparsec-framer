@@ -1,6 +1,6 @@
-# Revision history for attoparsec-frames
+# Revision history for attoparsec-framer
 
-`attoparsec-frames` uses [PVP Versioning][1].
+`attoparsec-framer` uses [PVP Versioning][1].
 
 
 ## 0.1.0.1 -- 2022-12-23
