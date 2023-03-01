@@ -4,6 +4,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
+{- |
+Module      : ToyFrame
+Copyright   : (c) 2022 Tim Emiola
+Maintainer  : Tim Emiola <adetokunbo@emio.la>
+SPDX-License-Identifier: BSD3
+
+Provides the 'Header' and 'FullFrame' data types used by the demo Client and
+Server along with useful common functions.
+-}
 module Attoparsec.ToyFrame (
   -- * data types
   Header (..),
@@ -64,18 +73,20 @@ fixed i p = do
     Right x -> pure x
 
 
+-- | @FullFrame@ is a header followed by a payload.
 type FullFrame = (Header, Payload)
 
 
+-- | @Header@ indicates a message index and the size of the payload
 data Header = Header
-  { hIndex :: !Word32
-  , hSize :: !Word32
+  { hResponseSize :: !Word32
+  , hMaxPayloadSize :: !Word32
   }
   deriving (Eq, Show)
 
 
 instance FrameSize Header where
-  frameSize = hSize
+  frameSize = hMaxPayloadSize
 
 
 newtype Payload = Payload ByteString
@@ -87,7 +98,7 @@ parseHeader = Header <$> A.anyWord32be <*> A.anyWord32be
 
 
 buildFrameHeader :: Header -> Builder
-buildFrameHeader fh = word32BE (hIndex fh) <> word32BE (hSize fh)
+buildFrameHeader fh = word32BE (hResponseSize fh) <> word32BE (hMaxPayloadSize fh)
 
 
 parseFrame :: A.Parser Payload
@@ -99,14 +110,14 @@ parser = parseSizedFrame parseHeader parseFrame
 
 
 builder' :: Word32 -> Payload -> Builder
-builder' hIndex (Payload b) =
-  let hSize = fromIntegral $ BS.length b
-      header = Header {hIndex, hSize}
+builder' hResponseSize (Payload b) =
+  let hMaxPayloadSize = fromIntegral $ BS.length b
+      header = Header {hResponseSize, hMaxPayloadSize}
    in buildFrameHeader header <> byteString b
 
 
 builder :: FullFrame -> Builder
-builder (header, body) = builder' (hIndex header) body
+builder (header, body) = builder' (hResponseSize header) body
 
 
 asBytes :: FullFrame -> BS.ByteString
@@ -140,7 +151,7 @@ someTriggers count = generate $ vectorOf count $ genClientTrigger
 genFullFrame :: Gen FullFrame
 genFullFrame = do
   header <- genHeader
-  body <- genPayload $ hSize header
+  body <- genPayload $ hMaxPayloadSize header
   pure (header, body)
 
 
@@ -154,5 +165,5 @@ genEnumPayload' count maxSize = vectorOf (fromIntegral count) $ do
 genAscFullFrames :: Word32 -> Word32 -> IO [FullFrame]
 genAscFullFrames count maxSize = generate $ do
   xs <- genEnumPayload' count maxSize
-  let toFullFrame (hIndex, (hSize, p)) = (Header {hSize, hIndex}, p)
+  let toFullFrame (hResponseSize, (hMaxPayloadSize, p)) = (Header {hMaxPayloadSize, hResponseSize}, p)
   pure $ map toFullFrame $ zip [1 ..] xs

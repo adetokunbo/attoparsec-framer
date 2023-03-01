@@ -2,6 +2,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
+{- |
+Module      : Client
+Copyright   : (c) 2022 Tim Emiola
+Maintainer  : Tim Emiola <adetokunbo@emio.la>
+SPDX-License-Identifier: BSD3
+
+A demo client that contacts the demo server via a framed protocol.
+
+* it generates a sequence of @'Header's@ that represent server requests
+  * each request specifies the number of frames the server should send in response
+* it connects to the server and begins sending the generated requests
+* between each request, it consumes the frames sent by the server in response
+   * it tracks them and confirms that the requested number of frames are received
+* finally, it sends a special @Header@ that signals to the server that it should close the connection
+-}
 module Main (main) where
 
 import Attoparsec.ToyFrame (
@@ -37,15 +52,19 @@ import Network.Socket.ByteString (recv, sendAll)
 
 main :: IO ()
 main = runTCPClient "127.0.0.1" "3927" $ \s -> do
+  -- generate the sequence of headers to send to the server, save in the tracking IORef
   trackingRef <- someTriggers 1024 >>= newTrackingRef
+  -- trigger an initial response from the server
   trackFrames trackingRef (socketSink s) Nothing
-  receiveFrames $ fromSocket trackingRef s
+  -- get the Framer; mkClientFramer uses trackFrames as its FrameHandler
+  receiveFrames $ mkClientFramer trackingRef s
+  -- print a summary after completing
   tracking <- readIORef trackingRef
   putStrLn $ "Received " ++ (show $ trackingFrames tracking) ++ " of total size " ++ (show $ trackingBytes tracking)
 
 
-fromSocket :: IORef Tracking -> Socket -> Framer IO FullFrame
-fromSocket ref s =
+mkClientFramer :: IORef Tracking -> Socket -> Framer IO FullFrame
+mkClientFramer ref s =
   let sink = socketSink s
       onFullFrame' f = trackFrames ref sink $ Just f
    in setOnClosed onClosed $
@@ -90,7 +109,7 @@ trackFrames trackingRef sink frameMb = do
     (Just (_, Payload p'), x : xs) -> incrOr p' $ do
       let updatedTracking =
             (incrWithPayload p')
-              { trackingCountdown = (fromIntegral $ hIndex x, 0)
+              { trackingCountdown = (fromIntegral $ hResponseSize x, 0)
               , trackingLeft = xs
               }
       writeIORef trackingRef updatedTracking
@@ -99,7 +118,7 @@ trackFrames trackingRef sink frameMb = do
       writeIORef
         trackingRef
         t
-          { trackingCountdown = (fromIntegral $ hIndex x, 0)
+          { trackingCountdown = (fromIntegral $ hResponseSize x, 0)
           , trackingLeft = xs
           }
       sink $ asBytes x
