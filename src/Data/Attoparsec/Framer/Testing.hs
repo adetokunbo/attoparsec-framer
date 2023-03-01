@@ -33,7 +33,7 @@ import Data.List (unfoldr)
 import Data.Word (Word32)
 
 
-{- | Creates a 'Framer' and uses 'receiveFrames to confirm that the expect frames
+{- | Creates a 'Framer' and uses 'runFramer to confirm that the expect frames
   are received '
 -}
 parsesFromFramerOk :: Eq a => (a -> ByteString) -> A.Parser a -> Word32 -> [a] -> IO Bool
@@ -44,7 +44,7 @@ parsesFromFramerOk asBytes parser chunkSize' wanted = do
       mkChunks n = mconcat $ map (chunksOfN n . asBytes) wanted
       src = nextFrom' mkChunks chunkStore
       frames = setChunkSize chunkSize' $ mkFramer parser updateDst src
-  receiveFrames frames `catch` (\(_e :: NoMoreInput) -> pure ())
+  runFramer frames `catch` (\(_e :: NoMoreInput) -> pure ())
 
   got <- readIORef dst
   pure $ got == reverse wanted
