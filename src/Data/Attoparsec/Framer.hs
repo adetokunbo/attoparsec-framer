@@ -20,13 +20,14 @@ Minimally, a @Framer@ specifies
 
 * An @'A.Parser'@, used to extract frames from the byte stream
 * a @'FrameHandler'@ responsible using the parsed frames
-* the bytestream source, represented a 'ByteSource'
+* the bytestream source, represented by 'ByteSource'
 
 
-@'runFramer'@ the 'FrameHandler' is invoked repeatedly; on each
-invocation it returns a 'Progression', which indicates if processing should
-continue. This makes it possible to terminate for the 'FrameHandler' to signal
-that frame processing should terminate.
+@'runFramer'@ read chunks from @ByteSource@, parses these into frames and
+invokes the 'FrameHandler' repeatedly; on each invocation it returns a
+'Progression', which indicates if processing should continue. This makes it
+possible for 'runFramer' to terminate by signalling that in the 'FrameHandler'
+implementation
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
@@ -71,7 +72,7 @@ import Data.Word (Word32)
 type FrameHandler m frame = frame -> m Progression
 
 
--- | A byte stream from which chunks are to be repeatedly retrieved.
+-- | A byte stream from which chunks are to be retrieved.
 type ByteSource m = Word32 -> m ByteString
 
 
@@ -83,7 +84,7 @@ data Progression
   deriving (Eq, Show)
 
 
--- | Use 'A.Parser' to parse a stream of @frames@ from a bytestream
+-- | Uses a 'A.Parser' to parse a stream of @frames@ from a bytestream
 data Framer m frame = Framer
   { framerChunkSize :: !Word32
   , frameByteSource :: !(ByteSource m)
@@ -94,8 +95,8 @@ data Framer m frame = Framer
   }
 
 
-{- | Construct @'Framer'@ that will handle @frames@ repeatedly until a returned
- @'Progression'@ stops it.
+{- | Construct a @'Framer'@ that will handle @frames@ repeatedly until the
+@FrameHandler@ returns a @'Progression'@ that stops it.
 -}
 mkFramer' ::
   MonadThrow m =>
@@ -114,7 +115,7 @@ mkFramer' framerParser framerOnFrame frameByteSource =
     }
 
 
--- | Construct @'Framer'@ that loops continuously.
+-- | Construct a @'Framer'@ that loops continuously.
 mkFramer ::
   MonadThrow m =>
   A.Parser a ->
@@ -147,8 +148,8 @@ runFramer f =
 
 {- | Parse and handle a single frame.
 
-The result is tuple of the outstanding unparsed bytes from the bytestream if
-any, and a value indicating if the bytestream has terminated.
+The result is a tuple of the outstanding unparsed bytes from the @ByteSource@ if
+any, and a value indicating if the @ByteSouce@ has terminated.
 -}
 runOneFrame ::
   MonadThrow m =>
@@ -255,9 +256,9 @@ parsingFailed context reason =
 On failures, @'runFramer'@ throws @'Exception's@ using @'MonadThrow'@ rather
 than using an @Either@ or @MonadError@
 
-This is because it is intended to be used to parse framed protocol byte streams;
-where parsing or connection errors here are typically not recoverable. In haskell
-non-recoverable failures are better modelled using @Exceptions@.
+This is because its intended use is for parsing framed protocol byte streams;
+where parsing or connection errors are typically not recoverable. In
+haskell non-recoverable failures are better modelled using @Exceptions@.
 
 Although it throws 'NoMoreInput' or 'BrokenFrame' when appropriate, it provides
 hooks to override these when constructing a 'Framer'.
