@@ -7,7 +7,7 @@
 [![BSD3](https://img.shields.io/badge/license-BSD3-green.svg?dummy)](https://github.com/adetokunbo/attoparsec-framer/blob/master/LICENSE)
 
 `attoparsec-framer` simplifies use of [Attoparsec] when processing framed
-protocol bytestreams.
+protocol byte streams.
 
 This repository includes the library source code, and a [demo server] and a
 [demo client]. To understand how to use it, please read the package

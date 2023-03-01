@@ -20,7 +20,7 @@ Minimally, a @Framer@ specifies
 
 * An @'A.Parser'@, used to extract frames from the byte stream
 * a @'FrameHandler'@ responsible using the parsed frames
-* the bytestream source, represented by 'ByteSource'
+* the byte stream source, represented by 'ByteSource'
 
 
 @'runFramer'@ read chunks from @ByteSource@, parses these into frames and
@@ -84,7 +84,7 @@ data Progression
   deriving (Eq, Show)
 
 
--- | Uses a 'A.Parser' to parse a stream of @frames@ from a bytestream
+-- | Uses a 'A.Parser' to parse a stream of @frames@ from a byte stream
 data Framer m frame = Framer
   { framerChunkSize :: !Word32
   , frameByteSource :: !(ByteSource m)
