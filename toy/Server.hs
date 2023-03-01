@@ -26,7 +26,7 @@ import Data.Attoparsec.Framer (
   Framer,
   Progression (..),
   mkFramer',
-  receiveFrames,
+  runFramer,
   setOnBadParse,
   setOnClosed,
  )
@@ -41,7 +41,7 @@ import Network.Socket.ByteString (recv, sendAll)
 main :: IO ()
 main = runTCPServer Nothing "3927" $ \s -> do
   Text.putStrLn "a toy client connected"
-  receiveFrames $ mkServerFramer s
+  runFramer $ mkServerFramer s
 
 
 type ByteSink = BS.ByteString -> IO ()
@@ -73,7 +73,7 @@ onHeader sink Header {hResponseSize, hMaxPayloadSize} = do
 onFailedParse :: Text -> IO ()
 onFailedParse cause = do
   -- if does not parse as a frame header terminate the connection
-  -- no explicit exception is raised here, so receiveFrames throws
+  -- no explicit exception is raised here, so runFramer throws
   Text.putStrLn $ "parse error ended a connection from a toy client: " <> cause
 
 

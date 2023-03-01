@@ -30,7 +30,7 @@ import Attoparsec.ToyFrame (
 import Data.Attoparsec.Framer (
   Framer,
   mkFramer,
-  receiveFrames,
+  runFramer,
   setOnBadParse,
   setOnClosed,
  )
@@ -57,7 +57,7 @@ main = runTCPClient "127.0.0.1" "3927" $ \s -> do
   -- trigger an initial response from the server
   trackFrames trackingRef (socketSink s) Nothing
   -- get the Framer; mkClientFramer uses trackFrames as its FrameHandler
-  receiveFrames $ mkClientFramer trackingRef s
+  runFramer $ mkClientFramer trackingRef s
   -- print a summary after completing
   tracking <- readIORef trackingRef
   putStrLn $ "Received " ++ (show $ trackingFrames tracking) ++ " of total size " ++ (show $ trackingBytes tracking)

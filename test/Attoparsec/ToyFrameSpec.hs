@@ -35,23 +35,23 @@ spec = describe "ToyFrame" $ do
         noError = setOnClosed (pure ()) basic
 
     it "should use the default close handler" $ do
-      receiveFrames basic `shouldThrow` (\NoMoreInput -> True)
+      runFramer basic `shouldThrow` (\NoMoreInput -> True)
 
     context "when a throwing closed handler is installed" $ do
       it "should throw" $ do
-        receiveFrames otherError `shouldThrow` (\x -> x == Underflow)
+        runFramer otherError `shouldThrow` (\x -> x == Underflow)
 
     context "when a closed handler does not throw an exception" $ do
       it "should finish without throwing" $ do
-        receiveFrames noError `shouldReturn` ()
+        runFramer noError `shouldReturn` ()
 
 
 receivesWithChunksOf :: Word32 -> SpecWith ()
 receivesWithChunksOf chunkSize' = do
   context ("when chunk size is " ++ show chunkSize') $
-    context "receiveFrames" $
+    context "runFramer" $
       it "should parse into frames" $
-        prop_receiveFrames chunkSize'
+        prop_runFramer chunkSize'
 
 
 prop_trip :: Property
@@ -61,7 +61,7 @@ prop_trip =
       \p -> parse (asBytes p) == Just p
 
 
-prop_receiveFrames :: Word32 -> Property
-prop_receiveFrames chunkSize' = monadicIO $
+prop_runFramer :: Word32 -> Property
+prop_runFramer chunkSize' = monadicIO $
   forAllM (listOf1 genFullFrame) $
     \ps -> run $ parsesFromFramerOk asBytes parser chunkSize' ps

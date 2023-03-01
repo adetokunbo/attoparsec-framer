@@ -11,26 +11,26 @@ SPDX-License-Identifier: BSD3
 
 Provides the 'Framer' data type that combines an @Attoparsec 'A.Parser'@ with a
 a few additional combinators that allow the parser to be used to process frames
-from the kind of framed byte streams commonly used to implement networking
-protocols.
+from the framed byte streams commonly used in network protocol implementations.
 
-A @'Framer'@ specifies how the processing function @'receiveFrames'@ should
+A @'Framer'@ specifies how the processing function @'runFramer'@ should
 parse a byte stream.
 
 Minimally, a @Framer@ specifies
 
 * An @'A.Parser'@, used to extract frames from the byte stream
 * a @'FrameHandler'@ responsible using the parsed frames
-* the bytestream source, represented by combinator that obtains the next chunk from the source
+* the bytestream source, represented a 'ByteSource'
 
 
-Within @'receiveFrames'@ the 'FrameHandler' is invoked repeatedly; on each
+@'runFramer'@ the 'FrameHandler' is invoked repeatedly; on each
 invocation it returns a 'Progression', which indicates if processing should
 continue. This makes it possible to terminate for the 'FrameHandler' to signal
 that frame processing should terminate.
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
+  ByteSource,
   Framer,
   FrameHandler,
   Progression (..),
@@ -44,11 +44,14 @@ module Data.Attoparsec.Framer (
   setOnFrame,
   chunkSize,
 
-  -- * run the @FrameHandler@
-  receiveFrame,
-  receiveFrames,
+  -- * Run the @Framer@
+  runFramer,
+  runOneFrame,
 
-  -- * potential handling exceptions
+  -- * Exception handling
+  -- $exceptions
+
+  -- * exceptions
   BrokenFrame (..),
   NoMoreInput (..),
 ) where
@@ -68,6 +71,10 @@ import Data.Word (Word32)
 type FrameHandler m frame = frame -> m Progression
 
 
+-- | A byte stream from which chunks are to be repeatedly retrieved.
+type ByteSource m = Word32 -> m ByteString
+
+
 -- | Used by 'FrameHandler' to indicate if additional frames should be parsed.
 data Progression
   = Stop
@@ -79,11 +86,11 @@ data Progression
 -- | Use 'A.Parser' to parse a stream of @frames@ from a bytestream
 data Framer m frame = Framer
   { framerChunkSize :: !Word32
-  , framerOnBadParse :: !(Text -> m ())
-  , framerNextChunk :: !(Word32 -> m ByteString)
+  , frameByteSource :: !(ByteSource m)
   , framerOnFrame :: !(FrameHandler m frame)
   , framerParser :: !(A.Parser frame)
   , framerOnClosed :: !(m ())
+  , framerOnBadParse :: !(Text -> m ())
   }
 
 
@@ -94,13 +101,13 @@ mkFramer' ::
   MonadThrow m =>
   A.Parser frame ->
   FrameHandler m frame ->
-  (Word32 -> m ByteString) ->
+  ByteSource m ->
   Framer m frame
-mkFramer' framerParser framerOnFrame framerNextChunk =
+mkFramer' framerParser framerOnFrame frameByteSource =
   Framer
     { framerParser
     , framerOnFrame
-    , framerNextChunk
+    , frameByteSource
     , framerOnBadParse = \_err -> pure ()
     , framerOnClosed = throwM NoMoreInput
     , framerChunkSize = defaultChunkSize
@@ -122,20 +129,20 @@ mkFramer parser onFrame fetchBytes =
 
 
 -- | Repeatedly parse and handle frames until the configured @FrameHandler@ ends handling.
-receiveFrames ::
+runFramer ::
   MonadThrow m =>
   Framer m a ->
   m ()
-receiveFrames f =
+runFramer f =
   let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerNextChunk = fetchBytes
+        , frameByteSource = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClosed
         } = f
-   in receiveFrames' fetchSize parser fetchBytes onFrame onErr onClosed
+   in runFramer' fetchSize parser fetchBytes onFrame onErr onClosed
 
 
 {- | Parse and handle a single frame.
@@ -143,21 +150,21 @@ receiveFrames f =
 The result is tuple of the outstanding unparsed bytes from the bytestream if
 any, and a value indicating if the bytestream has terminated.
 -}
-receiveFrame ::
+runOneFrame ::
   MonadThrow m =>
   Maybe ByteString ->
   Framer m a ->
   m ((Maybe ByteString), Bool)
-receiveFrame restMb f =
+runOneFrame restMb f =
   let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerNextChunk = fetchBytes
+        , frameByteSource = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClose
         } = f
-   in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
+   in runOneFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
 
 
 -- | The chunk size of a @Framer@.
@@ -185,7 +192,7 @@ setOnClosed :: (m ()) -> Framer m a -> Framer m a
 setOnClosed onClose f = f {framerOnClosed = onClose}
 
 
-receiveFrames' ::
+runFramer' ::
   MonadThrow m =>
   Word32 ->
   A.Parser a ->
@@ -194,30 +201,14 @@ receiveFrames' ::
   (Text -> m ()) ->
   m () ->
   m ()
-receiveFrames' fetchSize parser fetchBytes handleFrame onErr onClosed = do
+runFramer' fetchSize parser fetchBytes handleFrame onErr onClosed = do
   let loop x = do
-        (next, closed) <- receiveFrame' x fetchSize parser fetchBytes handleFrame onErr onClosed
+        (next, closed) <- runOneFrame' x fetchSize parser fetchBytes handleFrame onErr onClosed
         if not closed then loop next else pure ()
   loop Nothing
 
 
-{- | Why MonadThrow instead of MonadError ?
-
-receiveFrames is parsing framed protocol streams this will usually be done in a
-client or server library
-
-MonadThrow is used so that the onFrame, onBadParse and onClose can raise library
-exception types from the client/server library classes directly whenever
-necessary.
-
-I.e, no specially handling of exceptions that occur during onFrame, and if onErr
-does not itself throw an exception, 'BrokenFrame' is thrown.
-
-The caller has created the Framer and provided it with onFrame, onErr and
-onClose, and should ensure that whatever is necessary on exceptions during
-onFrame are handle appropriately.
--}
-receiveFrame' ::
+runOneFrame' ::
   MonadThrow m =>
   Maybe ByteString ->
   Word32 ->
@@ -227,7 +218,7 @@ receiveFrame' ::
   (Text -> m ()) ->
   m () ->
   m ((Maybe ByteString), Bool)
-receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
+runOneFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
   let pullChunk = fetchBytes fetchSize
       initial = fromMaybe BS.empty restMb
       onParse (A.Fail _ ctxs reason) = do
@@ -259,7 +250,27 @@ parsingFailed context reason =
    in "bad parse:" <> contexts <> cause
 
 
--- | Thrown by 'receiveFrames' or 'receiveFrame' if the parsing fails
+{- $exceptions
+
+On failures, @'runFramer'@ throws @'Exception's@ using @'MonadThrow'@ rather
+than using an @Either@ or @MonadError@
+
+This is because it is intended to be used to parse framed protocol byte streams;
+where parsing or connection errors here are typically not recoverable. In haskell
+non-recoverable failures are better modelled using @Exceptions@.
+
+Although it throws 'NoMoreInput' or 'BrokenFrame' when appropriate, it provides
+hooks to override these when constructing a 'Framer'.
+
+By use of 'setOnClosed' and 'setOnBadParse', the caller of @runFramer@ can
+completely override the exception type that is raised when @runFramer@ encounters
+any failure.
+-}
+
+
+{- | Thrown by 'runFramer' or 'runOneFrame' if parsing fails and there is no
+ handler installed using 'setOnBadParse', or it does not throw an exception.
+-}
 newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
 
@@ -267,8 +278,8 @@ newtype BrokenFrame = BrokenFrame String
 instance Exception BrokenFrame
 
 
-{- | Thrown by 'receiveFrames' or 'receiveFrame' when no further input is available
- and @setOnClosed@ was not used.
+{- | Thrown by 'runFramer' or 'runOneFrame' when no further input is available and
+ no end of input handler is set using 'setOnClosed'.
 -}
 data NoMoreInput = NoMoreInput
   deriving (Eq, Show)
