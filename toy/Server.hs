@@ -17,7 +17,7 @@ A demo server that responds to the demo client via a framed protocol.
 * valid requests are @'Header's@ that indicate the number of frames to send and
   their maximum size
   * it sends a series of responses that match the request specification
-  * if the number of frames to send is 0 it closes the connection
+  * if the requested response size is 0, it closes the connection
 -}
 module Main (main) where
 
