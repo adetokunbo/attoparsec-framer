@@ -45,8 +45,8 @@ module Data.Attoparsec.Framer (
   chunkSize,
 
   -- * run the @Framer@
-  receiveFrame,
   runFramer,
+  runOneFrame,
 
   -- * potential handling exceptions
   BrokenFrame (..),
@@ -143,12 +143,12 @@ runFramer f =
 The result is tuple of the outstanding unparsed bytes from the bytestream if
 any, and a value indicating if the bytestream has terminated.
 -}
-receiveFrame ::
+runOneFrame ::
   MonadThrow m =>
   Maybe ByteString ->
   Framer m a ->
   m ((Maybe ByteString), Bool)
-receiveFrame restMb f =
+runOneFrame restMb f =
   let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
@@ -157,7 +157,7 @@ receiveFrame restMb f =
         , framerParser = parser
         , framerOnClosed = onClose
         } = f
-   in receiveFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
+   in runOneFrame' restMb fetchSize parser fetchBytes onFrame onErr onClose
 
 
 -- | The chunk size of a @Framer@.
@@ -196,7 +196,7 @@ runFramer' ::
   m ()
 runFramer' fetchSize parser fetchBytes handleFrame onErr onClosed = do
   let loop x = do
-        (next, closed) <- receiveFrame' x fetchSize parser fetchBytes handleFrame onErr onClosed
+        (next, closed) <- runOneFrame' x fetchSize parser fetchBytes handleFrame onErr onClosed
         if not closed then loop next else pure ()
   loop Nothing
 
@@ -217,7 +217,7 @@ The caller has created the Framer and provided it with onFrame, onErr and
 onClose, and should ensure that whatever is necessary on exceptions during
 onFrame are handle appropriately.
 -}
-receiveFrame' ::
+runOneFrame' ::
   MonadThrow m =>
   Maybe ByteString ->
   Word32 ->
@@ -227,7 +227,7 @@ receiveFrame' ::
   (Text -> m ()) ->
   m () ->
   m ((Maybe ByteString), Bool)
-receiveFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
+runOneFrame' restMb fetchSize parser fetchBytes handleFrame onErr onClose = do
   let pullChunk = fetchBytes fetchSize
       initial = fromMaybe BS.empty restMb
       onParse (A.Fail _ ctxs reason) = do
@@ -259,7 +259,7 @@ parsingFailed context reason =
    in "bad parse:" <> contexts <> cause
 
 
--- | Thrown by 'runFramer' or 'receiveFrame' if the parsing fails
+-- | Thrown by 'runFramer' or 'runOneFrame' if the parsing fails
 newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
 
@@ -267,7 +267,7 @@ newtype BrokenFrame = BrokenFrame String
 instance Exception BrokenFrame
 
 
-{- | Thrown by 'runFramer' or 'receiveFrame' when no further input is available
+{- | Thrown by 'runFramer' or 'runOneFrame' when no further input is available
  and @setOnClosed@ was not used.
 -}
 data NoMoreInput = NoMoreInput
