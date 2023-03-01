@@ -11,8 +11,7 @@ SPDX-License-Identifier: BSD3
 
 Provides the 'Framer' data type that combines an @Attoparsec 'A.Parser'@ with a
 a few additional combinators that allow the parser to be used to process frames
-from the kind of framed byte streams commonly used to implement networking
-protocols.
+from the framed byte streams commonly used in network protocol implementations.
 
 A @'Framer'@ specifies how the processing function @'runFramer'@ should
 parse a byte stream.
@@ -21,7 +20,7 @@ Minimally, a @Framer@ specifies
 
 * An @'A.Parser'@, used to extract frames from the byte stream
 * a @'FrameHandler'@ responsible using the parsed frames
-* the bytestream source, represented by combinator that obtains the next chunk from the source
+* the bytestream source, represented a 'ByteSource'
 
 
 @'runFramer'@ the 'FrameHandler' is invoked repeatedly; on each
@@ -31,6 +30,7 @@ that frame processing should terminate.
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
+  ByteSource,
   Framer,
   FrameHandler,
   Progression (..),
@@ -67,6 +67,8 @@ import Data.Word (Word32)
 -- | Handles a parsed @frame@, returning a @Progression@ that indicates if further @frames@ should be parsed.
 type FrameHandler m frame = frame -> m Progression
 
+-- | A byte stream from which chunks are to be repeatedly retrieved.
+type ByteSource m = Word32 -> m ByteString
 
 -- | Used by 'FrameHandler' to indicate if additional frames should be parsed.
 data Progression
@@ -79,11 +81,11 @@ data Progression
 -- | Use 'A.Parser' to parse a stream of @frames@ from a bytestream
 data Framer m frame = Framer
   { framerChunkSize :: !Word32
-  , framerOnBadParse :: !(Text -> m ())
-  , framerNextChunk :: !(Word32 -> m ByteString)
+  , frameByteSource :: !(ByteSource m)
   , framerOnFrame :: !(FrameHandler m frame)
   , framerParser :: !(A.Parser frame)
   , framerOnClosed :: !(m ())
+  , framerOnBadParse :: !(Text -> m ())
   }
 
 
@@ -94,13 +96,13 @@ mkFramer' ::
   MonadThrow m =>
   A.Parser frame ->
   FrameHandler m frame ->
-  (Word32 -> m ByteString) ->
+  ByteSource m ->
   Framer m frame
-mkFramer' framerParser framerOnFrame framerNextChunk =
+mkFramer' framerParser framerOnFrame frameByteSource =
   Framer
     { framerParser
     , framerOnFrame
-    , framerNextChunk
+    , frameByteSource
     , framerOnBadParse = \_err -> pure ()
     , framerOnClosed = throwM NoMoreInput
     , framerChunkSize = defaultChunkSize
@@ -130,7 +132,7 @@ runFramer f =
   let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerNextChunk = fetchBytes
+        , frameByteSource = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClosed
@@ -152,7 +154,7 @@ runOneFrame restMb f =
   let Framer
         { framerChunkSize = fetchSize
         , framerOnBadParse = onErr
-        , framerNextChunk = fetchBytes
+        , frameByteSource = fetchBytes
         , framerOnFrame = onFrame
         , framerParser = parser
         , framerOnClosed = onClose
