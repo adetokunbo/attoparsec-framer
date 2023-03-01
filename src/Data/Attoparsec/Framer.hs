@@ -70,8 +70,10 @@ import Data.Word (Word32)
 -- | Handles a parsed @frame@, returning a @Progression@ that indicates if further @frames@ should be parsed.
 type FrameHandler m frame = frame -> m Progression
 
+
 -- | A byte stream from which chunks are to be repeatedly retrieved.
 type ByteSource m = Word32 -> m ByteString
+
 
 -- | Used by 'FrameHandler' to indicate if additional frames should be parsed.
 data Progression
@@ -263,15 +265,14 @@ hooks to override these when constructing a 'Framer'.
 By use of 'setOnClosed' and 'setOnBadParse', the caller of @runFramer@ can
 completely override the exception type that is raised when @runFramer@ encounters
 any failure.
-
 -}
 
 
--- | Thrown by 'runFramer' or 'runOneFrame' if parsing fails and there is no
--- handler installed using 'setOnBadParse', or it does not throw an exception.
+{- | Thrown by 'runFramer' or 'runOneFrame' if parsing fails and there is no
+ handler installed using 'setOnBadParse', or it does not throw an exception.
+-}
 newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
-
 
 
 instance Exception BrokenFrame
