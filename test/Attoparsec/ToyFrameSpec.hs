@@ -50,7 +50,8 @@ receivesWithChunksOf :: Word32 -> SpecWith ()
 receivesWithChunksOf chunkSize' = do
   context ("when chunk size is " ++ show chunkSize') $
     context "receiveFrames" $
-      it "should parse into frames" $ prop_receiveFrames chunkSize'
+      it "should parse into frames" $
+        prop_receiveFrames chunkSize'
 
 
 prop_trip :: Property

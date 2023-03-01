@@ -28,8 +28,6 @@ Within @'receiveFrames'@ the 'FrameHandler' is invoked repeatedly; on each
 invocation it returns a 'Progression', which indicates if processing should
 continue. This makes it possible to terminate for the 'FrameHandler' to signal
 that frame processing should terminate.
-
-
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
@@ -72,7 +70,7 @@ type FrameHandler m frame = frame -> m Progression
 
 -- | Used by 'FrameHandler' to indicate if additional frames should be parsed.
 data Progression
-   = Stop
+  = Stop
   | StopUnlessExtra
   | Continue
   deriving (Eq, Show)
