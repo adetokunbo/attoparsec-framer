@@ -250,19 +250,19 @@ parsingFailed context reason =
 
 {- $exceptions
 
-@'runFramer'@ throws exceptions using @'MonadThrow'@ rather the return an @Either@
-or use @MonadError@
+On failures, @'runFramer'@ throws @'Exception's@ using @'MonadThrow'@ rather
+than using an @Either@ or @MonadError@
 
 This is because it is intended to be used to parse framed protocol byte streams;
-were parsing errors here are usually not recoverable. In haskell non-recoverable
-failures are better modelled using @Exceptions@.
+where parsing or connection errors here are typically not recoverable. In haskell
+non-recoverable failures are better modelled using @Exceptions@.
 
 Although it throws 'NoMoreInput' or 'BrokenFrame' when appropriate, it provides
 hooks to override these when constructing a 'Framer'.
 
 By use of 'setOnClosed' and 'setOnBadParse', the caller of @runFramer@ can
-completely override the exception type that is raised if @runFramer@ encounters
-a failure
+completely override the exception type that is raised when @runFramer@ encounters
+any failure.
 
 -}
 
