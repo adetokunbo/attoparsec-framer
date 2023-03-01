@@ -118,10 +118,13 @@ mkFramer' framerParser framerOnFrame frameByteSource =
 -- | Construct a @'Framer'@ that loops continuously.
 mkFramer ::
   MonadThrow m =>
-  A.Parser a ->
-  (a -> m ()) ->
-  (Word32 -> m ByteString) ->
-  Framer m a
+  -- | parses frames from the byte stream
+  A.Parser frame ->
+  -- | handles parsed frames
+  (frame -> m ()) ->
+  -- | obtains the next chunk from the byte stream
+  ByteSource m ->
+  Framer m frame
 mkFramer parser onFrame fetchBytes =
   let onFrameContinue x = do
         onFrame x
@@ -132,7 +135,7 @@ mkFramer parser onFrame fetchBytes =
 -- | Repeatedly parse and handle frames until the configured @FrameHandler@ ends handling.
 runFramer ::
   MonadThrow m =>
-  Framer m a ->
+  Framer m frame ->
   m ()
 runFramer f =
   let Framer
@@ -154,7 +157,7 @@ any, and a value indicating if the @ByteSouce@ has terminated.
 runOneFrame ::
   MonadThrow m =>
   Maybe ByteString ->
-  Framer m a ->
+  Framer m frame ->
   m ((Maybe ByteString), Bool)
 runOneFrame restMb f =
   let Framer
