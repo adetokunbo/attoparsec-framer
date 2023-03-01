@@ -44,11 +44,14 @@ module Data.Attoparsec.Framer (
   setOnFrame,
   chunkSize,
 
-  -- * run the @Framer@
+  -- * Run the @Framer@
   runFramer,
   runOneFrame,
 
-  -- * potential handling exceptions
+  -- * Exception handling
+  -- $exceptions
+
+  -- * exceptions
   BrokenFrame (..),
   NoMoreInput (..),
 ) where
@@ -203,22 +206,6 @@ runFramer' fetchSize parser fetchBytes handleFrame onErr onClosed = do
   loop Nothing
 
 
-{- | Why MonadThrow instead of MonadError ?
-
-runFramer is parsing framed protocol streams this will usually be done in a
-client or server library
-
-MonadThrow is used so that the onFrame, onBadParse and onClose can raise library
-exception types from the client/server library classes directly whenever
-necessary.
-
-I.e, no specially handling of exceptions that occur during onFrame, and if onErr
-does not itself throw an exception, 'BrokenFrame' is thrown.
-
-The caller has created the Framer and provided it with onFrame, onErr and
-onClose, and should ensure that whatever is necessary on exceptions during
-onFrame are handle appropriately.
--}
 runOneFrame' ::
   MonadThrow m =>
   Maybe ByteString ->
@@ -261,16 +248,37 @@ parsingFailed context reason =
    in "bad parse:" <> contexts <> cause
 
 
--- | Thrown by 'runFramer' or 'runOneFrame' if the parsing fails
+{- $exceptions
+
+@'runFramer'@ throws exceptions using @'MonadThrow'@ rather the return an @Either@
+or use @MonadError@
+
+This is because it is intended to be used to parse framed protocol byte streams;
+were parsing errors here are usually not recoverable. In haskell non-recoverable
+failures are better modelled using @Exceptions@.
+
+Although it throws 'NoMoreInput' or 'BrokenFrame' when appropriate, it provides
+hooks to override these when constructing a 'Framer'.
+
+By use of 'setOnClosed' and 'setOnBadParse', the caller of @runFramer@ can
+completely override the exception type that is raised if @runFramer@ encounters
+a failure
+
+-}
+
+
+-- | Thrown by 'runFramer' or 'runOneFrame' if parsing fails and there is no
+-- handler installed using 'setOnBadParse', or it does not throw an exception.
 newtype BrokenFrame = BrokenFrame String
   deriving (Eq, Show)
+
 
 
 instance Exception BrokenFrame
 
 
-{- | Thrown by 'runFramer' or 'runOneFrame' when no further input is available
- and @setOnClosed@ was not used.
+{- | Thrown by 'runFramer' or 'runOneFrame' when no further input is available and
+ no end of input handler is set using 'setOnClosed'.
 -}
 data NoMoreInput = NoMoreInput
   deriving (Eq, Show)
