@@ -11,23 +11,21 @@ SPDX-License-Identifier: BSD3
 
 Provides the 'Framer' data type that combines an @Attoparsec 'A.Parser'@ with a
 a few additional combinators that allow the parser to be used to process frames
-from the framed byte streams commonly used in network protocol implementations.
+of the framed byte streams commonly used in network protocol implementations.
 
 A @'Framer'@ specifies how the processing function @'runFramer'@ should
 parse a byte stream.
 
 Minimally, a @Framer@ specifies
 
-* An @'A.Parser'@, used to extract frames from the byte stream
-* a @'FrameHandler'@ responsible using the parsed frames
-* the byte stream source, represented by 'ByteSource'
+* a @'A.Parser'@, used to extract frames from the byte stream
+* a @'FrameHandler'@ responsible for using the parsed frames
+* the byte stream source, represented by a 'ByteSource'
 
-
-@'runFramer'@ read chunks from @ByteSource@, parses these into frames and
-invokes the 'FrameHandler' repeatedly; on each invocation it returns a
-'Progression', which indicates if processing should continue. This makes it
-possible for 'runFramer' to terminate by signalling that in the 'FrameHandler'
-implementation
+@'runFramer'@ reads chunks from the @ByteSource@, parses these into frames and
+invokes the 'FrameHandler'. Each invocation returns a 'Progression', which
+indicates if processing should continue. This allows the 'FrameHandler' to
+trigger termination of 'runFramer'.
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
