@@ -11,22 +11,21 @@ SPDX-License-Identifier: BSD3
 
 Provides the 'Framer' data type that combines an @Attoparsec 'A.Parser'@ with a
 a few additional combinators that allow the parser to be used to process frames
-from the framed byte streams commonly used in network protocol implementations.
+of the framed byte streams commonly used in network protocol implementations.
 
 A @'Framer'@ specifies how the processing function @'runFramer'@ should
 parse a byte stream.
 
 Minimally, a @Framer@ specifies
 
-* An @'A.Parser'@, used to extract frames from the byte stream
-* a @'FrameHandler'@ responsible using the parsed frames
-* the bytestream source, represented a 'ByteSource'
+* a @'A.Parser'@, used to extract frames from the byte stream
+* a @'FrameHandler'@ responsible for using the parsed frames
+* the byte stream source, represented by a 'ByteSource'
 
-
-@'runFramer'@ the 'FrameHandler' is invoked repeatedly; on each
-invocation it returns a 'Progression', which indicates if processing should
-continue. This makes it possible to terminate for the 'FrameHandler' to signal
-that frame processing should terminate.
+@'runFramer'@ reads chunks from the @ByteSource@, parses these into frames and
+invokes the 'FrameHandler'. Each invocation returns a 'Progression', which
+indicates if processing should continue. This allows the 'FrameHandler' to
+trigger termination of 'runFramer'.
 -}
 module Data.Attoparsec.Framer (
   -- * Framer
@@ -71,7 +70,7 @@ import Data.Word (Word32)
 type FrameHandler m frame = frame -> m Progression
 
 
--- | A byte stream from which chunks are to be repeatedly retrieved.
+-- | A byte stream from which chunks are to be retrieved.
 type ByteSource m = Word32 -> m ByteString
 
 
@@ -83,7 +82,7 @@ data Progression
   deriving (Eq, Show)
 
 
--- | Use 'A.Parser' to parse a stream of @frames@ from a bytestream
+-- | Uses a 'A.Parser' to parse a stream of @frames@ from a byte stream
 data Framer m frame = Framer
   { framerChunkSize :: !Word32
   , frameByteSource :: !(ByteSource m)
@@ -94,8 +93,8 @@ data Framer m frame = Framer
   }
 
 
-{- | Construct @'Framer'@ that will handle @frames@ repeatedly until a returned
- @'Progression'@ stops it.
+{- | Construct a @'Framer'@ that will handle @frames@ repeatedly until the
+@FrameHandler@ returns a @'Progression'@ that stops it.
 -}
 mkFramer' ::
   MonadThrow m =>
@@ -114,13 +113,16 @@ mkFramer' framerParser framerOnFrame frameByteSource =
     }
 
 
--- | Construct @'Framer'@ that loops continuously.
+-- | Construct a @'Framer'@ that loops continuously.
 mkFramer ::
   MonadThrow m =>
-  A.Parser a ->
-  (a -> m ()) ->
-  (Word32 -> m ByteString) ->
-  Framer m a
+  -- | parses frames from the byte stream
+  A.Parser frame ->
+  -- | handles parsed frames
+  (frame -> m ()) ->
+  -- | obtains the next chunk from the byte stream
+  ByteSource m ->
+  Framer m frame
 mkFramer parser onFrame fetchBytes =
   let onFrameContinue x = do
         onFrame x
@@ -131,7 +133,7 @@ mkFramer parser onFrame fetchBytes =
 -- | Repeatedly parse and handle frames until the configured @FrameHandler@ ends handling.
 runFramer ::
   MonadThrow m =>
-  Framer m a ->
+  Framer m frame ->
   m ()
 runFramer f =
   let Framer
@@ -147,13 +149,13 @@ runFramer f =
 
 {- | Parse and handle a single frame.
 
-The result is tuple of the outstanding unparsed bytes from the bytestream if
-any, and a value indicating if the bytestream has terminated.
+The result is a tuple of the outstanding unparsed bytes from the @ByteSource@ if
+any, and a value indicating if the @ByteSouce@ has terminated.
 -}
 runOneFrame ::
   MonadThrow m =>
   Maybe ByteString ->
-  Framer m a ->
+  Framer m frame ->
   m ((Maybe ByteString), Bool)
 runOneFrame restMb f =
   let Framer
@@ -255,9 +257,9 @@ parsingFailed context reason =
 On failures, @'runFramer'@ throws @'Exception's@ using @'MonadThrow'@ rather
 than using an @Either@ or @MonadError@
 
-This is because it is intended to be used to parse framed protocol byte streams;
-where parsing or connection errors here are typically not recoverable. In haskell
-non-recoverable failures are better modelled using @Exceptions@.
+This is because its intended use is for parsing framed protocol byte streams;
+where parsing or connection errors are typically not recoverable. In
+haskell non-recoverable failures are better modelled using @Exceptions@.
 
 Although it throws 'NoMoreInput' or 'BrokenFrame' when appropriate, it provides
 hooks to override these when constructing a 'Framer'.
