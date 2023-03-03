@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
@@ -23,6 +24,8 @@ import qualified Data.Attoparsec.ByteString as A
 import Data.Attoparsec.Framer
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import Data.ByteString.Builder (byteStringHex, toLazyByteString)
+import qualified Data.ByteString.Lazy.Char8 as C8
 import Data.IORef (
   IORef,
   modifyIORef',
@@ -103,8 +106,13 @@ ioRefByteSource refSrc size = do
 
 ioRefByteSink :: IORef [ByteString] -> IORef (Maybe ByteString) -> ByteString -> IO ()
 ioRefByteSink refResponses refSrc _ignored = do
+  let asHex = toLazyByteString . byteStringHex
+  C8.putStrLn $ "bytesink got: " <> (asHex _ignored)
   readIORef refResponses >>= \case
-    [] -> writeIORef refSrc Nothing
+    [] -> do
+      C8.putStrLn "bytesource has nothing"
+      writeIORef refSrc Nothing
     (x : xs) -> do
+      C8.putStrLn $ "bytesink will reply with: " <> (asHex x)
       writeIORef refSrc $ Just x
       writeIORef refResponses $ xs
