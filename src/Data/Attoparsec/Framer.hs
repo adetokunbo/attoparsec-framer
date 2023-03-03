@@ -149,12 +149,18 @@ runFramer f =
 
 {- | Parse and handle a single frame.
 
-The result is a tuple of the outstanding unparsed bytes from the @ByteSource@ if
-any, and a value indicating if the @ByteSouce@ has terminated.
+The result is a tuple: (Maybe @unparsed@, @terminated@)
+
+where
+
+@unparsed@ are outstanding bytes fetched from the @ByteSource@ and
+@terminated@ is @True@ if the @ByteSouce@ has no further input.
 -}
 runOneFrame ::
   MonadThrow m =>
+  -- | the unparsed bytes from an earlier invocation, if any
   Maybe ByteString ->
+  -- | the 'Framer' used to parse the @frame@
   Framer m frame ->
   m ((Maybe ByteString), Bool)
 runOneFrame restMb f =
