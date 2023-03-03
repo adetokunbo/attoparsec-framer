@@ -154,7 +154,7 @@ The result is a tuple: (Maybe @unparsed@, @terminated@)
 where
 
 @unparsed@ are outstanding bytes fetched from the @ByteSource@ and
-@terminated@ is @True@ if the @ByteSouce@ has no further input.
+@terminated@ is @True@ if the @ByteSource@ has no further input.
 -}
 runOneFrame ::
   MonadThrow m =>
