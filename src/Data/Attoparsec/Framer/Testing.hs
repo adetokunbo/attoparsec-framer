@@ -15,6 +15,7 @@ module Data.Attoparsec.Framer.Testing (
   -- * testing combinators
   parsesFromFramerOk,
   chunksOfN,
+  linkedSrcAndSink,
 ) where
 
 import Control.Exception (catch)
@@ -70,3 +71,40 @@ nextFrom' initChunks chunkStore chunkSize' = do
     Just (x : xs) -> do
       writeIORef chunkStore $ Just xs
       pure x
+
+
+{- | A @'ByteSource'@ linked to a byte sink.
+
+Provides a @ByteSource@ and @byte sink@ that emulate a responding endpoint.
+
+The @responses@ are consumed each time the byte sink is invoked.
+
+Whenever the sink is invoked, the head of the provided responses is removed
+and starts to be returned in chunks by the @ByteSource@,
+-}
+linkedSrcAndSink :: [ByteString] -> IO (ByteSource IO, (ByteString -> IO ()))
+linkedSrcAndSink responses = do
+  refSrc <- newIORef Nothing
+  refSink <- newIORef responses
+  pure (ioRefByteSource refSrc, ioRefByteSink refSink refSrc)
+
+
+ioRefByteSource :: IORef (Maybe ByteString) -> ByteSource IO
+ioRefByteSource refSrc size = do
+  readIORef refSrc >>= \case
+    Nothing -> pure BS.empty
+    Just src -> do
+      let taken = BS.take (fromIntegral size) src
+          rest = BS.drop (fromIntegral size) src
+          stored = if BS.null rest then Nothing else Just rest
+      writeIORef refSrc stored
+      pure taken
+
+
+ioRefByteSink :: IORef [ByteString] -> IORef (Maybe ByteString) -> ByteString -> IO ()
+ioRefByteSink refResponses refSrc _ignored = do
+  readIORef refResponses >>= \case
+    [] -> writeIORef refSrc Nothing
+    (x : xs) -> do
+      writeIORef refSrc $ Just x
+      writeIORef refResponses $ xs
