@@ -99,7 +99,7 @@ ioRefByteSource refSrc size = do
     Just src -> do
       let taken = BS.take (fromIntegral size) src
           rest = BS.drop (fromIntegral size) src
-          stored = if BS.null rest then Nothing else Just rest
+          stored = if BS.null taken then Nothing else Just rest
       writeIORef refSrc stored
       pure taken
 
