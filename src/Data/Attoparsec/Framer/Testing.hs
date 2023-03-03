@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK prune not-home #-}
 
@@ -103,8 +104,12 @@ ioRefByteSource refSrc size = do
 
 ioRefByteSink :: IORef [ByteString] -> IORef (Maybe ByteString) -> ByteString -> IO ()
 ioRefByteSink refResponses refSrc _ignored = do
+  BS.putStrLn $ "bytesink got: " <> _ignored
   readIORef refResponses >>= \case
-    [] -> writeIORef refSrc Nothing
+    [] -> do
+      BS.putStrLn "bytesource has nothing"
+      writeIORef refSrc Nothing
     (x : xs) -> do
+      BS.putStrLn $ "bytesink will reply with: " <> x
       writeIORef refSrc $ Just x
       writeIORef refResponses $ xs
