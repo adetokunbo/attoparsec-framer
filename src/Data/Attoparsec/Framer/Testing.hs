@@ -17,9 +17,11 @@ module Data.Attoparsec.Framer.Testing (
   parsesFromFramerOk,
   chunksOfN,
   linkedSrcAndSink,
+  linkedSrcAndSink',
 ) where
 
 import Control.Exception (catch)
+import Control.Monad (when)
 import qualified Data.Attoparsec.ByteString as A
 import Data.Attoparsec.Framer
 import Data.ByteString (ByteString)
@@ -89,7 +91,15 @@ linkedSrcAndSink :: [ByteString] -> IO (ByteSource IO, (ByteString -> IO ()))
 linkedSrcAndSink responses = do
   refSrc <- newIORef Nothing
   refSink <- newIORef responses
-  pure (ioRefByteSource refSrc, ioRefByteSink refSink refSrc)
+  pure (ioRefByteSource refSrc, ioRefByteSink False refSink refSrc)
+
+
+-- | Like 'linkedSrcAndSink', but prints the src and sink to output as debug
+linkedSrcAndSink' :: [ByteString] -> IO (ByteSource IO, (ByteString -> IO ()))
+linkedSrcAndSink' responses = do
+  refSrc <- newIORef Nothing
+  refSink <- newIORef responses
+  pure (ioRefByteSource refSrc, ioRefByteSink True refSink refSrc)
 
 
 ioRefByteSource :: IORef (Maybe ByteString) -> ByteSource IO
@@ -104,15 +114,15 @@ ioRefByteSource refSrc size = do
       pure taken
 
 
-ioRefByteSink :: IORef [ByteString] -> IORef (Maybe ByteString) -> ByteString -> IO ()
-ioRefByteSink refResponses refSrc _ignored = do
+ioRefByteSink :: Bool -> IORef [ByteString] -> IORef (Maybe ByteString) -> ByteString -> IO ()
+ioRefByteSink debug refResponses refSrc _ignored = do
   let asHex = toLazyByteString . byteStringHex
-  C8.putStrLn $ "bytesink got: " <> (asHex _ignored)
+  when debug $ C8.putStrLn $ "bytesink got: " <> (asHex _ignored)
   readIORef refResponses >>= \case
     [] -> do
-      C8.putStrLn "bytesource has nothing"
+      when debug $ C8.putStrLn "bytesource has nothing"
       writeIORef refSrc Nothing
     (x : xs) -> do
-      C8.putStrLn $ "bytesink will reply with: " <> (asHex x)
+      when debug $ C8.putStrLn $ "bytesink will reply with: " <> (asHex x)
       writeIORef refSrc $ Just x
       writeIORef refResponses $ xs
