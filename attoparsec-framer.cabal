@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               attoparsec-framer
-version:            0.1.0.0
+version:            0.1.0.1
 synopsis:           Use Attoparsec to parse framed protocol byte streams
 description:
   A library that simplifies the use of
