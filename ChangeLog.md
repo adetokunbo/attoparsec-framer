@@ -2,6 +2,10 @@
 
 `attoparsec-framer` uses [PVP Versioning][1].
 
+## 0.1.0.2 -- 2024-02-29
+
+* Adjust upper bound for ByteString to allow use of 0.12.1.0
+
 ## 0.1.0.1 -- 2023-07-19
 
 * Adjust upper bound for ByteString to allow use of 0.12.0.0
