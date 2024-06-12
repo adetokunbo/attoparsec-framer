@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               attoparsec-framer
-version:            0.1.0.4
+version:            0.1.0.5
 synopsis:           Use Attoparsec to parse framed protocol byte streams
 description:
   A library that simplifies the use of
@@ -80,7 +80,7 @@ executable toy-client
     , base               >=4.10     && <5
     , bytestring         >=0.10.8.2 && <0.13
     , network            >=3.1.0    && <4
-    , network-run        >=0.2.2    && <0.3
+    , network-run        >=0.2.2    && <0.4
     , text               >=1.2.3    && <2.2
     , QuickCheck
 
