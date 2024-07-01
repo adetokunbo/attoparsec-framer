@@ -2,6 +2,10 @@
 
 `attoparsec-framer` uses [PVP Versioning][1].
 
+## 0.1.0.6 -- 2024-07-01
+
+* Relax lower bounds on QuickCheck
+
 ## 0.1.0.5 -- 2024-06-24
 
 * Relax upper bounds of network-run

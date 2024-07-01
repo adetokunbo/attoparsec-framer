@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               attoparsec-framer
-version:            0.1.0.5
+version:            0.1.0.6
 synopsis:           Use Attoparsec to parse framed protocol byte streams
 description:
   A library that simplifies the use of
@@ -59,7 +59,7 @@ executable toy-server
     , network            >=3.1.0    && <4
     , network-run        >=0.2.2    && <0.4
     , text               >=1.2.3    && <2.2
-    , QuickCheck         >= 2.15    && < 2.16
+    , QuickCheck         >= 2.13    && < 2.16
 
   hs-source-dirs:   toy
   default-language: Haskell2010
