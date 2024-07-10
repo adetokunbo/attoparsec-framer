@@ -45,6 +45,10 @@ library
   ghc-options:
     -Wall -Wincomplete-uni-patterns -Wpartial-fields -fwarn-tabs
 
+Flag profile-the-exes
+  description: Switch on profiling for the executables
+  default:     False
+
 -- toy-server serves a simple framed protocol
 executable toy-server
   main-is:          Server.hs
@@ -67,7 +71,8 @@ executable toy-server
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   ghc-options:
     -Wall -Wincomplete-uni-patterns -Wpartial-fields -fwarn-tabs
-  ghc-options: -fprof-auto
+  if flag(profile-the-exes)
+    ghc-options: -fprof-auto
 
 -- toy-client accesses a simple framed protocol
 executable toy-client
@@ -90,7 +95,8 @@ executable toy-client
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   ghc-options:
     -Wall -Wincomplete-uni-patterns -Wpartial-fields -fwarn-tabs
-  ghc-options: -fprof-auto
+  if flag(profile-the-exes)
+    ghc-options: -fprof-auto
 
 test-suite unittests
   type:             exitcode-stdio-1.0
