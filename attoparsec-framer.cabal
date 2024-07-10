@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               attoparsec-framer
-version:            0.1.0.7
+version:            0.1.0.8
 synopsis:           Use Attoparsec to parse framed protocol byte streams
 description:
   A library that simplifies the use of
@@ -22,6 +22,7 @@ homepage:           https://github.com/adetokunbo/attoparsec-framer#readme
 bug-reports:        https://github.com/adetokunbo/attoparsec-framer/issues
 build-type:         Simple
 extra-source-files: ChangeLog.md
+tested-with:        GHC ==8.10.7 || ==9.0.2 || ==9.2.8 || ==9.4.8 || ==9.6.6 || ==9.8.2 || ==9.10.1
 
 source-repository head
   type:     git
