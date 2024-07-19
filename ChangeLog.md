@@ -2,6 +2,10 @@
 
 `attoparsec-framer` uses [PVP Versioning][1].
 
+## 0.1.0.9 -- 2024-07-19
+
+* Relax upper bounds of network-run
+
 ## 0.1.0.8 -- 2024-07-11
 
 * Expand CI test matrix
