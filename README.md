@@ -1,9 +1,8 @@
 # attoparsec-framer
 
-[![GitHub CI](https://github.com/adetokunbo/attoparsec-framer/actions/workflows/ci.yml/badge.svg)](https://github.com/adetokunbo/attoparsec-framer/actions)
+[![GitHub CI](https://github.com/adetokunbo/attoparsec-framer/actions/workflows/cabal.yml/badge.svg)](https://github.com/adetokunbo/attoparsec-framer/actions)
 [![Stackage Nightly](http://stackage.org/package/attoparsec-framer/badge/nightly)](http://stackage.org/nightly/package/attoparsec-framer)
 [![Hackage][hackage-badge]][hackage]
-[![Hackage Dependencies][hackage-deps-badge]][hackage-deps]
 [![BSD3](https://img.shields.io/badge/license-BSD3-green.svg?dummy)](https://github.com/adetokunbo/attoparsec-framer/blob/master/LICENSE)
 
 `attoparsec-framer` simplifies use of [Attoparsec] when processing framed
